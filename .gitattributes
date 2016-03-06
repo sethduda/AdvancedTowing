@@ -15,3 +15,9 @@
 *.PDF	 diff=astextplain
 *.rtf	 diff=astextplain
 *.RTF	 diff=astextplain
+
+*.sqf eol=crlf
+*.sqm eol=crlf
+*.ext eol=crlf
+*.hpp eol=crlf
+*.cpp eol=crlf

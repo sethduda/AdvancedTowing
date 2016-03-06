@@ -1,0 +1,12 @@
+name = "Advanced Towing";
+picture = "logo.paa";
+description = "Advanced Towing";
+logo = "logo.paa";
+logoOver = "logo.paa";
+tooltip = "Advanced Towing";
+tooltipOwned = "Advanced Towing Owned";
+overview = "Advanced Towing";
+author = "[SA] Duda";
+overviewPicture = "logo.paa";
+overviewText = "Advanced Towing";
+overviewFootnote = "";
