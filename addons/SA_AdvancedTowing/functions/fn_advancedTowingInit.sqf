@@ -36,14 +36,14 @@ SA_Simulate_Towing = {
 	
 	_doExit = false;
 	
-	while {count (ropeAttachedObjects _vehicle) == 1 && alive _cargo && !_doExit} do {
+	while {count (ropeAttachedObjects _vehicle) == 1 && !_doExit} do {
 
 		_vehicleHitchPosition = _vehicle modelToWorld _vehicleHitchModelPos;
 		_vehicleHitchPosition set [2,0];
 		_cargoHitchPosition = _lastCargoHitchPosition;
 		_cargoHitchPosition set [2,0];
 		
-		if(_vehicleHitchPosition distance _cargoHitchPosition > _ropeLength) then {
+		if(_vehicleHitchPosition distance _cargoHitchPosition > (_ropeLength+0.01)) then {
 		
 			_newCargoHitchPosition = _vehicleHitchPosition vectorAdd ((_vehicleHitchPosition vectorFromTo _cargoHitchPosition) vectorMultiply _ropeLength);
 			_cargoVector = _lastCargoVectorDir vectorMultiply _cargoLength;
@@ -101,6 +101,7 @@ SA_Attach_Tow_Ropes = {
 				_helper = "Land_Can_V2_F" createVehicle position _cargo;
 				_helper attachTo [_cargo, _cargoHitch];
 				hideObjectGlobal _helper;
+				hideObject _helper;
 				[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
 				_ropeLength = (ropeLength (_towRopes select 0));
 				_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
@@ -162,6 +163,7 @@ SA_Pickup_Tow_Ropes = {
 			_helper attachTo [_player, [-0.1, 0.1, 0.15], "Pelvis"];
 		} forEach (_vehicle getVariable ["SA_Tow_Ropes",[]]);
 		hideObjectGlobal _helper;
+		hideObject _helper;
 		_player setVariable ["SA_Tow_Ropes_Vehicle", _vehicle,true];
 		_player setVariable ["SA_Tow_Ropes_Pick_Up_Helper", _helper,true];
 	} else {
