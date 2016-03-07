@@ -24,6 +24,9 @@ SA_Simulate_Towing = {
 	
 	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_bbr","_p1","_p2","_maxCargoWidth","_maxCargoLength","_cargoLength"];
 	
+	_vehicleHitchModelPos set [2,0];
+	_cargoHitchModelPos set [2,0];
+	
 	_lastCargoHitchPosition = _cargo modelToWorld _cargoHitchModelPos;
 	_lastCargoVectorDir = vectorDir _cargo;
 	
