@@ -11,7 +11,9 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 */
 {
 
-if(!isNil "SA_TOW_INIT" || !hasInterface) exitWith {};
+diag_log "Advanced Towing Loading...";
+
+if(!isNil "SA_TOW_INIT") exitWith {};
 
 SA_TOW_INIT = true;
 
@@ -43,7 +45,7 @@ SA_Simulate_Towing = {
 		_cargoHitchPosition = _lastCargoHitchPosition;
 		_cargoHitchPosition set [2,0];
 		
-		if(_vehicleHitchPosition distance _cargoHitchPosition > (_ropeLength+0.01)) then {
+		if(_vehicleHitchPosition distance _cargoHitchPosition > _ropeLength) then {
 		
 			_newCargoHitchPosition = _vehicleHitchPosition vectorAdd ((_vehicleHitchPosition vectorFromTo _cargoHitchPosition) vectorMultiply _ropeLength);
 			_cargoVector = _lastCargoVectorDir vectorMultiply _cargoLength;
@@ -116,6 +118,7 @@ SA_Attach_Tow_Ropes = {
 SA_Take_Tow_Ropes = {
 	params ["_vehicle","_player"];
 	if(local _vehicle) then {
+		diag_log format ["Take Tow Ropes Called %1", _this];
 		private ["_existingTowRopes","_hitchPoint","_rope"];
 		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 		if(count _existingTowRopes == 0) then {
@@ -262,7 +265,7 @@ SA_Is_Supported_Vehicle = {
 	params ["_vehicle"];
 	if(not isNull _vehicle) then {
 		if(_vehicle isKindOf "Tank" || _vehicle isKindOf "Car" || _vehicle isKindOf "Ship" || _vehicle isKindOf "Air") then {
-			alive _vehicle;
+			true;
 		} else {
 			false;
 		};
@@ -375,5 +378,6 @@ if(!isDedicated) then {
 	};
 };
 
+diag_log "Advanced Towing Loaded";
 
 } remoteExecCall ["bis_fnc_call", 0,true]; 
