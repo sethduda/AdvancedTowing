@@ -204,10 +204,15 @@ SA_Drop_Tow_Ropes = {
 };
 
 SA_Attach_Tow_Ropes_Action = {
-	private ["_vehicle","_towRopes"];
+	private ["_vehicle","_towVehicle"];
 	_vehicle = cursorTarget;
-	if([_vehicle] call SA_Is_Supported_Vehicle) then {
-		[_vehicle,player] call SA_Attach_Tow_Ropes;
+	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+	if(!isNull _towVehicle && !isNull _vehicle) then {
+		if([_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle) then {
+			[_vehicle,player] call SA_Attach_Tow_Ropes;
+		} else {
+			false;
+		};
 	} else {
 		false;
 	};
@@ -216,9 +221,20 @@ SA_Attach_Tow_Ropes_Action = {
 SA_Attach_Tow_Ropes_Action_Check = {
 	private ["_vehicle","_towVehicle"];
 	_vehicle = cursorTarget;
-	if([_vehicle] call SA_Is_Supported_Vehicle) then {
-		_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-		vehicle player == player && player distance _vehicle < 10 && !isNull _towVehicle && _towVehicle != _vehicle;
+	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+	if(!isNull _towVehicle && !isNull _vehicle) then {
+		[_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle;	
+	} else {
+		false;
+	};
+};
+
+SA_Attach_Tow_Ropes_Action_Disabled_Check = {
+	private ["_vehicle","_towVehicle"];
+	_vehicle = cursorTarget;
+	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+	if(!isNull _towVehicle && !isNull _vehicle) then {
+		not([_towVehicle,_vehicle] call SA_Is_Supported_Cargo) && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle;	
 	} else {
 		false;
 	};
@@ -274,7 +290,7 @@ SA_Drop_Tow_Ropes_Action = {
 SA_Is_Supported_Vehicle = {
 	params ["_vehicle"];
 	if(not isNull _vehicle) then {
-		if(_vehicle isKindOf "Tank" || _vehicle isKindOf "Car" || _vehicle isKindOf "Ship" || _vehicle isKindOf "Air") then {
+		if(_vehicle isKindOf "Tank" || _vehicle isKindOf "Car" || _vehicle isKindOf "Ship") then {
 			true;
 		} else {
 			false;
@@ -282,6 +298,45 @@ SA_Is_Supported_Vehicle = {
 	} else {
 		false;
 	};
+};
+
+SA_TOW_RULES = [
+	["Tank","CAN_TOW","Tank"],
+	["Tank","CAN_TOW","Car"],
+	["Tank","CAN_TOW","Ship"],
+	["Tank","CAN_TOW","Air"],
+	["Tank","CAN_TOW","Cargo_base_F"],
+	["Car","CAN_TOW","Car"],
+	["Car","CAN_TOW","Ship"],
+	["Car","CAN_TOW","Air"],
+	["Car","CANT_TOW","Helicopter"],
+	["Car","CANT_TOW","Truck_F"],
+	["Truck_F","CAN_TOW","Car"],
+	["Truck_F","CAN_TOW","Helicopter"],
+	["Truck_F","CAN_TOW","Cargo_base_F"],
+	["Ship","CAN_TOW","Ship"]
+];
+
+SA_TOW_RULES_OVERRIDE = [];
+
+SA_Is_Supported_Cargo = {
+	params ["_vehicle","_cargo"];
+	private ["_canTow"];
+	_canTow = false;
+	if(not isNull _vehicle && not isNull _cargo) then {
+		{
+			if(_vehicle isKindOf (_x select 0)) then {
+				if(_cargo isKindOf (_x select 2)) then {
+					if( (toUpper (_x select 1)) == "CAN_TOW" ) then {
+						_canTow = true;
+					} else {
+						_canTow = false;
+					};
+				};
+			};
+		} forEach (SA_TOW_RULES + SA_TOW_RULES_OVERRIDE);
+	};
+	_canTow;
 };
 
 SA_Take_Tow_Ropes_Action = {
@@ -331,6 +386,16 @@ if(hasInterface) then {
 		player addAction ["Attach To Tow Ropes", { 
 			[] call SA_Attach_Tow_Ropes_Action;
 		}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
+	}];
+	
+	player addAction ["Cannot Attach Tow Ropes", { 
+		hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
+	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
+
+	player addEventHandler ["Respawn", {
+		player addAction ["Cannot Attach Tow Ropes", { 
+			hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
+		}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
 	}];
 
 	player addAction ["Drop Tow Ropes", { 
