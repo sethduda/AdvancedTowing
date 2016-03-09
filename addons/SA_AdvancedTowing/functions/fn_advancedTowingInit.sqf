@@ -75,20 +75,23 @@ SA_Simulate_Towing = {
 	};	
 };
 
-
 SA_Get_Hitch_Points = {
 	params ["_vehicle"];
-	private ["_bb","_bbBottom","_bbTop","_centerOfMass","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint","_frontHitchPoint"];
-	_bb = boundingBoxReal _vehicle;
-	_bbBottom = _bb select 0;
-	_bbTop = _bb select 1;
+	private ["_centerOfMass","_bbr","_p1","_p2","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint","_frontHitchPoint","_maxWidth","_widthOffset","_maxLength","_lengthOffset"];
 	_centerOfMass = getCenterOfMass _vehicle;
-	_rearCorner = [(_bbBottom select 0),(_bbBottom select 1)*0.75, (_centerOfMass select 2) ];
-	_rearCorner2 = [(_bbTop select 0),(_bbBottom select 1)*0.75, (_centerOfMass select 2)];
-	_frontCorner = [(_bbTop select 0),(_bbTop select 1)*0.75, (_centerOfMass select 2)];
-	_frontCorner2 = [(_bbBottom select 0),(_bbTop select 1)*0.75, (_centerOfMass select 2)];
-	_rearHitchPoint = [((_rearCorner select 0) + (_rearCorner2 select 0))/2,((_rearCorner select 1) + (_rearCorner2 select 1))/2,((_rearCorner select 2) + (_rearCorner select 2))/2];
-	_frontHitchPoint = [((_frontCorner select 0) + (_frontCorner2 select 0))/2,((_frontCorner select 1) + (_frontCorner2 select 1))/2,((_frontCorner select 2) + (_frontCorner2 select 2))/2];
+	_bbr = boundingBoxReal _vehicle;
+	_p1 = _bbr select 0;
+	_p2 = _bbr select 1;
+	_maxWidth = abs ((_p2 select 0) - (_p1 select 0));
+	_widthOffset = ((_maxWidth / 2) - abs ( _centerOfMass select 0 )) * 0.75;
+	_maxLength = abs ((_p2 select 1) - (_p1 select 1));
+	_lengthOffset = ((_maxLength / 2) - abs (_centerOfMass select 1 )) * 0.75;
+	_rearCorner = [(_centerOfMass select 0) + _widthOffset, (_centerOfMass select 1) - _lengthOffset, _centerOfMass select 2];
+	_rearCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) - _lengthOffset, _centerOfMass select 2];
+	_frontCorner = [(_centerOfMass select 0) + _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
+	_frontCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
+	_rearHitchPoint = ((_rearCorner vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _rearCorner2;
+	_frontHitchPoint = ((_frontCorner vectorDiff _frontCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
 	[_frontHitchPoint,_rearHitchPoint,_frontCorner,_frontCorner2,_rearCorner,_rearCorner2];
 };
 
@@ -97,20 +100,24 @@ SA_Attach_Tow_Ropes = {
 	_vehicle = _player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
 	if(!isNull _vehicle) then {
 		if(local _vehicle) then {
-			private ["_towRopes","_hitchPoints","_cargoHitch"];
+			private ["_towRopes","_vehicleHitch","_cargoHitch","_objDistance","_ropeLength"];
 			_towRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 			if(count _towRopes == 1) then {
-				[_vehicle,_player] call SA_Drop_Tow_Ropes;
-				_hitchPoints = [_cargo] call SA_Get_Hitch_Points;
-				_cargoHitch = _hitchPoints select 0;
-				_helper = "Land_Can_V2_F" createVehicle position _cargo;
-				_helper attachTo [_cargo, _cargoHitch];
-				hideObjectGlobal _helper;
-				hideObject _helper;
-				[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
-				_ropeLength = (ropeLength (_towRopes select 0));
+				_cargoHitch = ([_cargo] call SA_Get_Hitch_Points) select 0;
 				_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
-				[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
+				_ropeLength = (ropeLength (_towRopes select 0));
+				_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
+				if( _objDistance > _ropeLength ) then {
+					"The tow ropes are too short. Move vehicle closer." remoteExec ["hint", _player]; 
+				} else {		
+					[_vehicle,_player] call SA_Drop_Tow_Ropes;
+					_helper = "Land_Can_V2_F" createVehicle position _cargo;
+					_helper attachTo [_cargo, _cargoHitch];
+					hideObjectGlobal _helper;
+					hideObject _helper;
+					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
+					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
+				};
 			};
 		} else {
 			_this remoteExecCall ["SA_Attach_Tow_Ropes", _vehicle]; 
