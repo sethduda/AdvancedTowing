@@ -26,6 +26,10 @@ SA_Simulate_Towing = {
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects"];
 	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass"];
 	
+	if(local _vehicle && !local _cargo) then {
+		[_cargo, clientOwner] remoteExec ["setOwner", 2];
+	};
+	
 	_vehicleHitchModelPos set [2,0];
 	_cargoHitchModelPos set [2,0];
 	
