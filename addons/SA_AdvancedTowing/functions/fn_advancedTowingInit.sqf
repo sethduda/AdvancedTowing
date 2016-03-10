@@ -22,7 +22,9 @@ SA_Simulate_Towing = {
 
 	params ["_vehicle","_vehicleHitchModelPos","_cargo","_cargoHitchModelPos","_ropeLength"];
 	
-	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_cargoLength","_maxDistanceToCargo","_lastMovedCargoPosition"];
+	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_cargoLength","_maxDistanceToCargo","_lastMovedCargoPosition","_cargoHitchPoints"];
+	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects"];
+	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass"];
 	
 	_vehicleHitchModelPos set [2,0];
 	_cargoHitchModelPos set [2,0];
@@ -34,45 +36,71 @@ SA_Simulate_Towing = {
 	_cargoHitchPoints = [_cargo] call SA_Get_Hitch_Points;
 	_cargoLength = (_cargoHitchPoints select 0) distance (_cargoHitchPoints select 1);
 	
+	_vehicleMass = 1 max (getMass _vehicle);
+	_cargoMass = getMass _cargo;
+	if(_cargoMass == 0) then {
+		_cargoMass = _vehicleMass;
+	};
+	
 	_maxDistanceToCargo = _ropeLength;
 
-	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition"];
-	
 	_doExit = false;
 	
-	while {count (ropeAttachedObjects _vehicle) == 1 && !_doExit} do {
+	while {!_doExit} do {
 
 		_vehicleHitchPosition = _vehicle modelToWorld _vehicleHitchModelPos;
 		_vehicleHitchPosition set [2,0];
 		_cargoHitchPosition = _lastCargoHitchPosition;
 		_cargoHitchPosition set [2,0];
 		
+		_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
+		
 		_cargoPosition = getPos _cargo;
+		_vehiclePosition = getPos _vehicle;
 		
 		if(_vehicleHitchPosition distance _cargoHitchPosition > _maxDistanceToCargo) then {
+		
+			// Calculated simulated towing position + direction
 			_newCargoHitchPosition = _vehicleHitchPosition vectorAdd ((_vehicleHitchPosition vectorFromTo _cargoHitchPosition) vectorMultiply _ropeLength);
 			_cargoVector = _lastCargoVectorDir vectorMultiply _cargoLength;
 			_movedCargoVector = _newCargoHitchPosition vectorDiff _lastCargoHitchPosition;
 			_newCargoDir = vectorNormalized (_cargoVector vectorAdd _movedCargoVector);
 			_lastCargoVectorDir = _newCargoDir;
 			_newCargoPosition = _newCargoHitchPosition vectorAdd (_newCargoDir vectorMultiply -(vectorMagnitude _cargoHitchModelPos));
+			_cargo allowDamage false;
 			_cargo setVectorDir _newCargoDir;
-			_cargo setPos _newCargoPosition;			
+			_cargo setPos _newCargoPosition;
+			_cargo allowDamage true;
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
 			_lastMovedCargoPosition = _cargoPosition;
+
+			_massAdjustedMaxSpeed = (0.1 * _maxVehicleSpeed) max ((0.75 * _maxVehicleSpeed) * ( 1 min (_vehicleMass / _cargoMass) ));			
+			if(speed _vehicle > (_massAdjustedMaxSpeed)+0.1 && _massAdjustedMaxSpeed > 0) then {
+				_vehicle setVelocity ((vectorNormalized (velocity _vehicle)) vectorMultiply (_massAdjustedMaxSpeed/3.6));
+			};
+			
 		} else {
+		
 			if(_lastMovedCargoPosition distance _cargoPosition > 2) then {
 				_lastCargoHitchPosition = _cargo modelToWorld _cargoHitchModelPos;
 				_lastCargoVectorDir = vectorDir _cargo;
 			};
+			
 		};
 		
-		
-
 		if(!local _vehicle) then {
 			_this remoteExec ["SA_Simulate_Towing", _vehicle]; 
 			_doExit = true;
+		};
+		
+		if( count (ropeAttachedObjects _vehicle) == 0 ) then {
+			_doExit = true;
+		} else {
+			_attachedObjects = ropeAttachedObjects _vehicle;
+			if( (attachedTo (_attachedObjects select 0)) != _cargo ) then {
+				_doExit = true;
+			};
 		};
 		
 		sleep 0.01;
@@ -83,7 +111,8 @@ SA_Simulate_Towing = {
 
 SA_Get_Hitch_Points = {
 	params ["_vehicle"];
-	private ["_centerOfMass","_bbr","_p1","_p2","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint","_frontHitchPoint","_maxWidth","_widthOffset","_maxLength","_lengthOffset"];
+	private ["_centerOfMass","_bbr","_p1","_p2","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint"];
+	private ["_frontHitchPoint","_maxWidth","_widthOffset","_maxLength","_lengthOffset","_sideLeftPoint","_sideRightPoint"];
 	_centerOfMass = getCenterOfMass _vehicle;
 	_bbr = boundingBoxReal _vehicle;
 	_p1 = _bbr select 0;
@@ -96,13 +125,6 @@ SA_Get_Hitch_Points = {
 	_rearCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) - _lengthOffset, _centerOfMass select 2];
 	_frontCorner = [(_centerOfMass select 0) + _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
 	_frontCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
-/*	if( (_rearCorner distance _frontCorner) < (_rearCorner distance _rearCorner2) ) then {
-		_rearCornerTemp = _rearCorner;
-		_rearCorner = _rearCorner2;
-		_rearCorner2 = _frontCorner2;
-		_frontCorner2 = _frontCorner;
-		_frontCorner = _rearCornerTemp;
-	}; */
 	_rearHitchPoint = ((_rearCorner vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _rearCorner2;
 	_frontHitchPoint = ((_frontCorner vectorDiff _frontCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
 	_sideLeftPoint = ((_frontCorner vectorDiff _rearCorner) vectorMultiply 0.5) vectorAdd  _frontCorner;
@@ -340,8 +362,6 @@ SA_TOW_RULES = [
 	["Car","CAN_TOW","Ship"],
 	["Car","CAN_TOW","Air"],
 	["Car","CANT_TOW","Helicopter"],
-	["Car","CANT_TOW","Truck_F"],
-	["Truck_F","CAN_TOW","Car"],
 	["Truck_F","CAN_TOW","Helicopter"],
 	["Truck_F","CAN_TOW","Cargo_base_F"],
 	["Ship","CAN_TOW","Ship"]
