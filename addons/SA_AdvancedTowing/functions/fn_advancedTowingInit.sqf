@@ -27,7 +27,7 @@ SA_Simulate_Towing = {
 	_vehicleHitchModelPos set [2,0];
 	_cargoHitchModelPos set [2,0];
 	
-	_lastCargoHitchPosition = _cargo modelToWorld _cargoHitchModelPos;
+	_lastCargoHitchPosition = _cargo modelToWorldVisual _cargoHitchModelPos;
 	_lastCargoVectorDir = vectorDir _cargo;
 	
 	_bbr = boundingBoxReal _cargo;
@@ -43,7 +43,7 @@ SA_Simulate_Towing = {
 	
 	while {count (ropeAttachedObjects _vehicle) == 1 && !_doExit} do {
 
-		_vehicleHitchPosition = _vehicle modelToWorld _vehicleHitchModelPos;
+		_vehicleHitchPosition = _vehicle modelToWorldVisual _vehicleHitchModelPos;
 		_vehicleHitchPosition set [2,0];
 		_cargoHitchPosition = _lastCargoHitchPosition;
 		_cargoHitchPosition set [2,0];
@@ -57,11 +57,11 @@ SA_Simulate_Towing = {
 			_lastCargoVectorDir = _newCargoDir;
 			_newCargoPosition = _newCargoHitchPosition vectorAdd (_newCargoDir vectorMultiply -(vectorMagnitude _cargoHitchModelPos));
 			_cargo setVectorDir _newCargoDir;
-			_cargo setPos _newCargoPosition;
+			_cargo setPosWorld _newCargoPosition;
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 		
 		} else {
-			_lastCargoHitchPosition = _cargo modelToWorld _cargoHitchModelPos;
+			_lastCargoHitchPosition = _cargo modelToWorldVisual _cargoHitchModelPos;
 			_lastCargoVectorDir = vectorDir _cargo;
 		};
 	
