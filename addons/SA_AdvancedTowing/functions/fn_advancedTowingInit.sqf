@@ -287,17 +287,21 @@ SA_Drop_Tow_Ropes_Action = {
 	};
 };
 
+SA_TOW_SUPPORTED_VEHICLES = [
+	"Tank", "Car", "Ship"
+];
+
 SA_Is_Supported_Vehicle = {
-	params ["_vehicle"];
+	params ["_vehicle","_isSupported"];
+	_isSupported = false;
 	if(not isNull _vehicle) then {
-		if(_vehicle isKindOf "Tank" || _vehicle isKindOf "Car" || _vehicle isKindOf "Ship") then {
-			true;
-		} else {
-			false;
-		};
-	} else {
-		false;
+		{
+			if(_vehicle isKindOf _x) then {
+				_isSupported = true;
+			};
+		} forEach SA_TOW_SUPPORTED_VEHICLES;
 	};
+	_isSupported;
 };
 
 SA_TOW_RULES = [
@@ -423,9 +427,9 @@ if(hasInterface) then {
 SA_Find_Nearby_Tow_Vehicles = {
 	private ["_nearVehicles","_nearVehiclesWithTowRopes","_vehicle","_ends","_end1","_end2"];
 	_nearVehicles = [];
-	_nearVehicles append  (position player nearObjects ["Tank", 30]);
-	_nearVehicles append  (position player nearObjects ["Car", 30]);
-	_nearVehicles append  (position player nearObjects ["Ship", 30]);
+	{
+		_nearVehicles append  (position player nearObjects [_x, 30]);
+	} forEach SA_TOW_SUPPORTED_VEHICLES;
 	_nearVehiclesWithTowRopes = [];
 	{
 		_vehicle = _x;
