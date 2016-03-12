@@ -17,15 +17,34 @@ if(!isNil "SA_TOW_INIT") exitWith {};
 
 SA_TOW_INIT = true;
 
-
 SA_Simulate_Towing = {
 
 	params ["_vehicle","_vehicleHitchModelPos","_cargo","_cargoHitchModelPos","_ropeLength"];
 	
 	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_cargoLength","_maxDistanceToCargo","_lastMovedCargoPosition","_cargoHitchPoints"];
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects"];
-	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass"];
+	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass"];	
+	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
 	
+	// Calculate _cargoModelCenterGroundPosition (This is the model center position that should be set to ground level)
+	private ["_cargoCenterOfMass","_cargoCenterOfMassAGL","_cargoModelCenterGroundPosition"];
+	_cargoCenterOfMass = getCenterOfMass _cargo;
+	_cargoCenterOfMassAGL = _cargo modelToWorldVisual _cargoCenterOfMass;
+	_cargoCenterOfMassAGL set [2,0];
+	_cargoModelCenterGroundPosition = _cargo worldToModelVisual _cargoCenterOfMassAGL;
+	_cargoModelCenterGroundPosition set [0,0];
+	_cargoModelCenterGroundPosition set [1,0];
+	
+	// Calculate cargo model corner points
+	private ["_cargoCornerPoints"];
+	_cargoCornerPoints = [_vehicle] call SA_Get_Corner_Points;
+	_corner1 = _cargoCornerPoints select 0;
+	_corner2 = _cargoCornerPoints select 1;
+	_corner3 = _cargoCornerPoints select 2;
+	_corner4 = _cargoCornerPoints select 3;
+	
+	
+	// Try to set cargo owner if the towing client doesn't own the cargo
 	if(local _vehicle && !local _cargo) then {
 		[_cargo, clientOwner] remoteExec ["setOwner", 2];
 	};
@@ -70,10 +89,31 @@ SA_Simulate_Towing = {
 			_movedCargoVector = _newCargoHitchPosition vectorDiff _lastCargoHitchPosition;
 			_newCargoDir = vectorNormalized (_cargoVector vectorAdd _movedCargoVector);
 			_lastCargoVectorDir = _newCargoDir;
-			_newCargoPosition = _newCargoHitchPosition vectorAdd (_newCargoDir vectorMultiply -(vectorMagnitude _cargoHitchModelPos));
+			_newCargoPosition = _newCargoHitchPosition vectorAdd (_newCargoDir vectorMultiply -(vectorMagnitude (_cargoHitchModelPos)));
+			_newCargoPosition = AGLToASL _newCargoPosition;
+			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
+			
+			// Calculate surface normal (up) (more realistic than surfaceNormal function)
+			_cargoCorner1AGL = _cargo modelToWorldVisual _corner1;
+			_cargoCorner1AGL set [2,0];
+			_cargoCorner1ASL = AGLToASL _cargoCorner1AGL;
+			_cargoCorner2AGL = _cargo modelToWorldVisual _corner2;
+			_cargoCorner2AGL set [2,0];
+			_cargoCorner2ASL = AGLToASL _cargoCorner2AGL;
+			_cargoCorner3AGL = _cargo modelToWorldVisual _corner3;
+			_cargoCorner3AGL set [2,0];
+			_cargoCorner3ASL = AGLToASL _cargoCorner3AGL;
+			_cargoCorner4AGL = _cargo modelToWorldVisual _corner4;
+			_cargoCorner4AGL set [2,0];
+			_cargoCorner4ASL = AGLToASL _cargoCorner4AGL;
+			_surfaceNormal1 = (_cargoCorner1ASL vectorFromTo _cargoCorner3ASL) vectorCrossProduct (_cargoCorner1ASL vectorFromTo _cargoCorner2ASL);
+			_surfaceNormal2 = (_cargoCorner4ASL vectorFromTo _cargoCorner2ASL) vectorCrossProduct (_cargoCorner4ASL vectorFromTo _cargoCorner3ASL);
+			_surfaceNormal = _surfaceNormal1 vectorAdd _surfaceNormal2;
+		
 			_cargo allowDamage false;
 			_cargo setVectorDir _newCargoDir;
-			_cargo setPos _newCargoPosition;
+			_cargo setVectorUp _surfaceNormal;
+			_cargo setPosWorld _newCargoPosition;
 			_cargo allowDamage true;
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
@@ -113,10 +153,10 @@ SA_Simulate_Towing = {
 	
 };
 
-SA_Get_Hitch_Points = {
+SA_Get_Corner_Points = {
 	params ["_vehicle"];
-	private ["_centerOfMass","_bbr","_p1","_p2","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint"];
-	private ["_frontHitchPoint","_maxWidth","_widthOffset","_maxLength","_lengthOffset","_sideLeftPoint","_sideRightPoint"];
+	private ["_centerOfMass","_bbr","_p1","_p2","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2"];
+	private ["_maxWidth","_widthOffset","_maxLength","_lengthOffset"];
 	_centerOfMass = getCenterOfMass _vehicle;
 	_bbr = boundingBoxReal _vehicle;
 	_p1 = _bbr select 0;
@@ -129,6 +169,18 @@ SA_Get_Hitch_Points = {
 	_rearCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) - _lengthOffset, _centerOfMass select 2];
 	_frontCorner = [(_centerOfMass select 0) + _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
 	_frontCorner2 = [(_centerOfMass select 0) - _widthOffset, (_centerOfMass select 1) + _lengthOffset, _centerOfMass select 2];
+	[_rearCorner,_rearCorner2,_frontCorner,_frontCorner2];
+};
+
+SA_Get_Hitch_Points = {
+	params ["_vehicle"];
+	private ["_cornerPoints","_rearCorner","_rearCorner2","_frontCorner","_frontCorner2","_rearHitchPoint"];
+	private ["_frontHitchPoint","_sideLeftPoint","_sideRightPoint"];
+	_cornerPoints = [_vehicle] call SA_Get_Corner_Points;
+	_rearCorner = _cornerPoints select 0;
+	_rearCorner2 = _cornerPoints select 1;
+	_frontCorner = _cornerPoints select 2;
+	_frontCorner2 = _cornerPoints select 3;
 	_rearHitchPoint = ((_rearCorner vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _rearCorner2;
 	_frontHitchPoint = ((_frontCorner vectorDiff _frontCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
 	_sideLeftPoint = ((_frontCorner vectorDiff _rearCorner) vectorMultiply 0.5) vectorAdd  _frontCorner;
