@@ -60,7 +60,7 @@ class CfgFunctions
 {
 	class SA
 	{
-		class AdvancedSlingLoading
+		class AdvancedTowing
 		{
 			file = "\SA_AdvancedTowing\functions";
 			class advancedTowingInit{postInit=1};
