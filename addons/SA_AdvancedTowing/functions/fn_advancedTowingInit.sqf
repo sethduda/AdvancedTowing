@@ -9,13 +9,13 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
-{
+//{
 
 diag_log "Advanced Towing Loading...";
 
-if(!isNil "SA_TOW_INIT") exitWith {};
+//if(!isNil "SA_TOW_INIT") exitWith {};
 
-SA_TOW_INIT = true;
+//SA_TOW_INIT = true;
 
 SA_Simulate_Towing = {
 
@@ -46,7 +46,7 @@ SA_Simulate_Towing = {
 	
 	// Try to set cargo owner if the towing client doesn't own the cargo
 	if(local _vehicle && !local _cargo) then {
-		[_cargo, clientOwner] remoteExec ["setOwner", 2];
+		[_cargo, clientOwner] remoteExec ["SA_Set_Owner", 2];
 	};
 	
 	_vehicleHitchModelPos set [2,0];
@@ -212,13 +212,13 @@ SA_Attach_Tow_Ropes = {
 				_ropeLength = (ropeLength (_towRopes select 0));
 				_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
 				if( _objDistance > _ropeLength ) then {
-					"The tow ropes are too short. Move vehicle closer." remoteExec ["hint", _player]; 
+					["The tow ropes are too short. Move vehicle closer."] remoteExec ["SA_Hint", _player]; 
 				} else {		
 					[_vehicle,_player] call SA_Drop_Tow_Ropes;
 					_helper = "Land_Can_V2_F" createVehicle position _cargo;
 					_helper attachTo [_cargo, _cargoHitch];
 					hideObject _helper;
-					_helper remoteExec ["hideObjectGlobal",2];
+					[_helper] remoteExec ["SA_Hide_Object_Global",2];
 					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
 					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
 				};
@@ -280,7 +280,7 @@ SA_Pickup_Tow_Ropes = {
 			_helper attachTo [_player, [-0.1, 0.1, 0.15], "Pelvis"];
 		} forEach (_vehicle getVariable ["SA_Tow_Ropes",[]]);
 		hideObject _helper;
-		_helper remoteExec ["hideObjectGlobal",2];
+		[_helper] remoteExec ["SA_Hide_Object_Global",2];
 		_player setVariable ["SA_Tow_Ropes_Vehicle", _vehicle,true];
 		_player setVariable ["SA_Tow_Ropes_Pick_Up_Helper", _helper,true];
 	} else {
@@ -445,6 +445,21 @@ SA_Is_Supported_Cargo = {
 	_canTow;
 };
 
+SA_Hint = {
+	params ["_msg"];
+	hint _msg;
+};
+
+SA_Hide_Object_Global = {
+	params ["_obj"];
+	hideObjectGlobal _obj;
+};
+
+SA_Set_Owner = {
+	params ["_obj","_client"];
+	_obj setOwner _client;
+};
+
 SA_Take_Tow_Ropes_Action = {
 	private ["_vehicle"];
 	_vehicle = cursorTarget;
@@ -462,66 +477,34 @@ SA_Put_Away_Tow_Ropes_Action = {
 	};
 };
 
-if(hasInterface) then {
-
+SA_Add_Player_Tow_Actions = {
+	
 	player addAction ["Deploy Tow Ropes", { 
 		[] call SA_Take_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Take_Tow_Ropes_Action_Check"];
 
-	player addEventHandler ["Respawn", {
-		player addAction ["Deploy Tow Ropes", { 
-			[] call SA_Take_Tow_Ropes_Action;
-		}, nil, 0, false, true, "", "call SA_Take_Tow_Ropes_Action_Check"];
-	}];
-	
 	player addAction ["Put Away Tow Ropes", { 
 		[] call SA_Put_Away_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Put_Away_Tow_Ropes_Action_Check"];
-
-	player addEventHandler ["Respawn", {
-		player addAction ["Put Away Tow Ropes", { 
-			[] call SA_Put_Away_Tow_Ropes_Action;
-		}, nil, 0, false, true, "", "call SA_Put_Away_Tow_Ropes_Action_Check"];
-	}];
 
 	player addAction ["Attach To Tow Ropes", { 
 		[] call SA_Attach_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
 
-	player addEventHandler ["Respawn", {
-		player addAction ["Attach To Tow Ropes", { 
-			[] call SA_Attach_Tow_Ropes_Action;
-		}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
-	}];
-	
 	player addAction ["Cannot Attach Tow Ropes", { 
 		hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
 
-	player addEventHandler ["Respawn", {
-		player addAction ["Cannot Attach Tow Ropes", { 
-			hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
-		}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
-	}];
-
 	player addAction ["Drop Tow Ropes", { 
 		[] call SA_Drop_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Drop_Tow_Ropes_Action_Check"];
-
-	player addEventHandler ["Respawn", {
-		player addAction ["Drop Tow Ropes", { 
-			[] call SA_Drop_Tow_Ropes_Action;
-		}, nil, 0, false, true, "", "call SA_Drop_Tow_Ropes_Action_Check"];
-	}];
 
 	player addAction ["Pickup Tow Ropes", { 
 		[] call SA_Pickup_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Pickup_Tow_Ropes_Action_Check"];
 
 	player addEventHandler ["Respawn", {
-		player addAction ["Pickup Tow Ropes", { 
-			[] call SA_Pickup_Tow_Ropes_Action;
-		}, nil, 0, false, true, "", "call SA_Pickup_Tow_Ropes_Action_Check"];
+		player setVariable ["SA_Tow_Actions_Loaded",false];
 	}];
 	
 };
@@ -553,6 +536,12 @@ SA_Find_Nearby_Tow_Vehicles = {
 if(!isDedicated) then {
 	[] spawn {
 		while {true} do {
+			if(!isNull player && isPlayer player) then {
+				if!( player getVariable ["SA_Tow_Actions_Loaded",false] ) then {
+					[] call SA_Add_Player_Tow_Actions;
+					player setVariable ["SA_Tow_Actions_Loaded",true];
+				};
+			};
 			missionNamespace setVariable ["SA_Nearby_Tow_Vehicles", (call SA_Find_Nearby_Tow_Vehicles)];
 			sleep 2;
 		};
@@ -561,4 +550,4 @@ if(!isDedicated) then {
 
 diag_log "Advanced Towing Loaded";
 
-} remoteExecCall ["bis_fnc_call", 0,true]; 
+//} remoteExecCall ["bis_fnc_call", 0,true]; 
