@@ -338,12 +338,8 @@ SA_Attach_Tow_Ropes_Action = {
 	private ["_vehicle","_towVehicle"];
 	_vehicle = cursorTarget;
 	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if(!isNull _towVehicle && !isNull _vehicle) then {
-		if([_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle) then {
-			[_vehicle,player] call SA_Attach_Tow_Ropes;
-		} else {
-			false;
-		};
+	if([_vehicle] call SA_Can_Attach_Tow_Ropes) then {
+		[_vehicle,player] call SA_Attach_Tow_Ropes;
 	} else {
 		false;
 	};
@@ -352,14 +348,29 @@ SA_Attach_Tow_Ropes_Action = {
 SA_Attach_Tow_Ropes_Action_Check = {
 	private ["_vehicle","_towVehicle","_isCargoBeingTowed","_isCargoTowingCargo","_isChainingEnabled","_isTowVehicleBeingTowed","_isTowVehicleTowingCargo"];
 	_vehicle = cursorTarget;
+	[_vehicle] call SA_Can_Attach_Tow_Ropes;
+};
+
+SA_Can_Attach_Tow_Ropes = {
+	params ["_cargo"];
+	private ["_towVehicle","_isCargoBeingTowed","_isCargoTowingCargo","_isChainingEnabled","_isTowVehicleBeingTowed","_isTowVehicleTowingCargo","_canBeTowed"];
 	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if(!isNull _towVehicle && !isNull _vehicle) then {
+	if(!isNull _towVehicle && !isNull _cargo) then {
 		_isChainingEnabled = missionNamespace getVariable ["SA_TOW_CHAINS_ENABLED",false];
-		_isCargoBeingTowed = not isNull (_vehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
-		_isCargoTowingCargo = not isNull (_vehicle getVariable ["SA_TOWING_CARGO",objNull]);
+		_isCargoBeingTowed = not isNull (_cargo getVariable ["SA_TOWING_VEHICLE",objNull]);
+		_isCargoTowingCargo = not isNull (_cargo getVariable ["SA_TOWING_CARGO",objNull]);
 		_isTowVehicleBeingTowed = not isNull (_towVehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
 		_isTowVehicleTowingCargo = not isNull (_towVehicle getVariable ["SA_TOWING_CARGO",objNull]);
-		[_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
+		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
+		if(!missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+			_canBeTowed = _canBeTowed && locked _cargo <= 1;
+		};
+		if(!missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+			if(!isNil "ExilePlayerInSafezone") then {
+				_canBeTowed = _canBeTowed && ExilePlayerInSafezone;
+			};
+		};
+		_canBeTowed;
 	} else {
 		false;
 	};
