@@ -367,7 +367,7 @@ SA_Can_Attach_Tow_Ropes = {
 		};
 		if(!missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
 			if(!isNil "ExilePlayerInSafezone") then {
-				_canBeTowed = _canBeTowed && ExilePlayerInSafezone;
+				_canBeTowed = _canBeTowed && !ExilePlayerInSafezone;
 			};
 		};
 		_canBeTowed;
