@@ -362,10 +362,10 @@ SA_Can_Attach_Tow_Ropes = {
 		_isTowVehicleBeingTowed = not isNull (_towVehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
 		_isTowVehicleTowingCargo = not isNull (_towVehicle getVariable ["SA_TOWING_CARGO",objNull]);
 		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
-		if(!missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
 			_canBeTowed = _canBeTowed && locked _cargo <= 1;
 		};
-		if(!missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
 			if(!isNil "ExilePlayerInSafezone") then {
 				_canBeTowed = _canBeTowed && !ExilePlayerInSafezone;
 			};
