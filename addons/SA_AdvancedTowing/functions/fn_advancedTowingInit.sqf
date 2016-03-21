@@ -14,14 +14,21 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 _objectASL = AGLToASL (_object modelToWorldVisual (getCenterOfMass _object)); \
 _surfaceIntersectStartASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) + 1]; \
 _surfaceIntersectEndASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) - 10]; \
-_surfaces = lineIntersectsSurfaces [_surfaceIntersectStartASL, _surfaceIntersectEndASL, _object, objNull, true, 1]; \
-if(count _surfaces == 1) then { \
-	_returnSurfaceASL = (_surfaces select 0) select 0; \
+_surfaces = lineIntersectsSurfaces [_surfaceIntersectStartASL, _surfaceIntersectEndASL, _object, objNull, true, 2]; \
+_returnSurfaceASL = [_positionAGL select 0, _positionAGL select 1, 0]; \
+if(count _surfaces > 0) then { \
+	if!(((_surfaces select 0) select 2) isKindOf "RopeSegment") then { \
+		_returnSurfaceASL = (_surfaces select 0) select 0; \
+	} else { \
+		if(count _surfaces > 1) then { \
+			if!(((_surfaces select 1) select 2) isKindOf "RopeSegment") then { \
+				_returnSurfaceASL = (_surfaces select 1) select 0; \
+			}; \
+		}; \
+	}; \
 	if(_canFloat && (_returnSurfaceASL select 2) < 0) then { \
 		_returnSurfaceASL set [2,0]; \
 	}; \
-} else { \
-	_returnSurfaceASL = [_positionAGL select 0, _positionAGL select 1, 0]; \
 };
 
 #define SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceASL,_canFloat) \
