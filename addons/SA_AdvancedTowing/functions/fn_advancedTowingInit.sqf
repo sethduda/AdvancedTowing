@@ -9,7 +9,29 @@ The above copyright notice and this permission notice shall be included in all c
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
+
 //{
+
+#define SA_Find_Surface_ASL_Under_Position(_object,_positionAGL,_returnSurfaceASL,_canFloat) \
+_objectASL = AGLToASL (_object modelToWorldVisual (getCenterOfMass _object)); \
+_surfaceIntersectStartASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) + 1]; \
+_surfaceIntersectEndASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) - 10]; \
+_surfaces = lineIntersectsSurfaces [_surfaceIntersectStartASL, _surfaceIntersectEndASL, _object, objNull, true, 1]; \
+if(count _surfaces == 1) then { \
+	_returnSurfaceASL = (_surfaces select 0) select 0; \
+	if(_canFloat && (_returnSurfaceASL select 2) < 0) then { \
+		_returnSurfaceASL set [2,0]; \
+	}; \
+} else { \
+	_returnSurfaceASL = [_positionAGL select 0, _positionAGL select 1, 0]; \
+};
+
+#define SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceASL,_canFloat) \
+SA_Find_Surface_ASL_Under_Position(_object, (_object modelToWorldVisual _modelOffset), _returnSurfaceASL,_canFloat);
+			
+#define SA_Find_Surface_AGL_Under_Model(_object,_modelOffset,_returnSurfaceAGL,_canFloat) \
+SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceAGL,_canFloat); \
+_returnSurfaceAGL = ASLtoAGL _returnSurfaceAGL;
 
 diag_log "Advanced Towing Loading...";
 
@@ -21,16 +43,19 @@ SA_Simulate_Towing = {
 
 	params ["_vehicle","_vehicleHitchModelPos","_cargo","_cargoHitchModelPos","_ropeLength"];
 	
+	_cargo setVariable ["SA_TOWING_VEHICLE",_vehicle,true];
+	_vehicle setVariable ["SA_TOWING_CARGO",_cargo,true];
+	
 	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_cargoLength","_maxDistanceToCargo","_lastMovedCargoPosition","_cargoHitchPoints"];
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects"];
-	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass"];	
+	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass","_cargoCanFloat"];	
 	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
 	
-	// Calculate _cargoModelCenterGroundPosition (This is the model center position that should be set to ground level)
-	private ["_cargoCenterOfMass","_cargoCenterOfMassAGL","_cargoModelCenterGroundPosition"];
-	_cargoCenterOfMass = getCenterOfMass _cargo;
-	_cargoCenterOfMassAGL = _cargo modelToWorldVisual _cargoCenterOfMass;
-	_cargoCenterOfMassAGL set [2,0];
+	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
+	_cargoCanFloat = if( getNumber (configFile >> "CfgVehicles" >> typeOf _cargo >> "canFloat") == 1 ) then { true } else { false };
+	
+	private ["_cargoCenterOfMassAGL","_cargoModelCenterGroundPosition"];
+	SA_Find_Surface_AGL_Under_Model(_cargo,getCenterOfMass _cargo,_cargoCenterOfMassAGL,_cargoCanFloat);
 	_cargoModelCenterGroundPosition = _cargo worldToModelVisual _cargoCenterOfMassAGL;
 	_cargoModelCenterGroundPosition set [0,0];
 	_cargoModelCenterGroundPosition set [1,0];
@@ -76,8 +101,6 @@ SA_Simulate_Towing = {
 		_cargoHitchPosition = _lastCargoHitchPosition;
 		_cargoHitchPosition set [2,0];
 		
-		_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
-		
 		_cargoPosition = getPos _cargo;
 		_vehiclePosition = getPos _vehicle;
 		
@@ -88,33 +111,29 @@ SA_Simulate_Towing = {
 			_cargoVector = _lastCargoVectorDir vectorMultiply _cargoLength;
 			_movedCargoVector = _newCargoHitchPosition vectorDiff _lastCargoHitchPosition;
 			_newCargoDir = vectorNormalized (_cargoVector vectorAdd _movedCargoVector);
+			//if(_isRearCargoHitch) then {
+			//	_newCargoDir = _newCargoDir vectorMultiply -1;
+			//};
 			_lastCargoVectorDir = _newCargoDir;
 			_newCargoPosition = _newCargoHitchPosition vectorAdd (_newCargoDir vectorMultiply -(vectorMagnitude (_cargoHitchModelPos)));
-			_newCargoPosition = AGLToASL _newCargoPosition;
-			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
+			
+			SA_Find_Surface_ASL_Under_Position(_cargo,_newCargoPosition,_newCargoPosition,_cargoCanFloat);
 			
 			// Calculate surface normal (up) (more realistic than surfaceNormal function)
-			_cargoCorner1AGL = _cargo modelToWorldVisual _corner1;
-			_cargoCorner1AGL set [2,0];
-			_cargoCorner1ASL = AGLToASL _cargoCorner1AGL;
-			_cargoCorner2AGL = _cargo modelToWorldVisual _corner2;
-			_cargoCorner2AGL set [2,0];
-			_cargoCorner2ASL = AGLToASL _cargoCorner2AGL;
-			_cargoCorner3AGL = _cargo modelToWorldVisual _corner3;
-			_cargoCorner3AGL set [2,0];
-			_cargoCorner3ASL = AGLToASL _cargoCorner3AGL;
-			_cargoCorner4AGL = _cargo modelToWorldVisual _corner4;
-			_cargoCorner4AGL set [2,0];
-			_cargoCorner4ASL = AGLToASL _cargoCorner4AGL;
+			SA_Find_Surface_ASL_Under_Model(_cargo,_corner1,_cargoCorner1ASL,_cargoCanFloat);
+			SA_Find_Surface_ASL_Under_Model(_cargo,_corner2,_cargoCorner2ASL,_cargoCanFloat);
+			SA_Find_Surface_ASL_Under_Model(_cargo,_corner3,_cargoCorner3ASL,_cargoCanFloat);
+			SA_Find_Surface_ASL_Under_Model(_cargo,_corner4,_cargoCorner4ASL,_cargoCanFloat);
 			_surfaceNormal1 = (_cargoCorner1ASL vectorFromTo _cargoCorner3ASL) vectorCrossProduct (_cargoCorner1ASL vectorFromTo _cargoCorner2ASL);
 			_surfaceNormal2 = (_cargoCorner4ASL vectorFromTo _cargoCorner2ASL) vectorCrossProduct (_cargoCorner4ASL vectorFromTo _cargoCorner3ASL);
 			_surfaceNormal = _surfaceNormal1 vectorAdd _surfaceNormal2;
-		
-			_cargo allowDamage false;
+
+			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
+
 			_cargo setVectorDir _newCargoDir;
 			_cargo setVectorUp _surfaceNormal;
 			_cargo setPosWorld _newCargoPosition;
-			_cargo allowDamage true;
+
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
 			_lastMovedCargoPosition = _cargoPosition;
@@ -149,7 +168,10 @@ SA_Simulate_Towing = {
 		
 		sleep 0.01;
 		
-	};	
+	};
+
+	_cargo setVariable ["SA_TOWING_VEHICLE",nil,true];
+	_vehicle setVariable ["SA_TOWING_CARGO",nil,true];	
 	
 };
 
@@ -183,9 +205,9 @@ SA_Get_Hitch_Points = {
 	_frontCorner2 = _cornerPoints select 3;
 	_rearHitchPoint = ((_rearCorner vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _rearCorner2;
 	_frontHitchPoint = ((_frontCorner vectorDiff _frontCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
-	_sideLeftPoint = ((_frontCorner vectorDiff _rearCorner) vectorMultiply 0.5) vectorAdd  _frontCorner;
-	_sideRightPoint = ((_frontCorner2 vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
-	[_frontHitchPoint,_rearHitchPoint,_sideLeftPoint,_sideRightPoint];
+	//_sideLeftPoint = ((_frontCorner vectorDiff _rearCorner) vectorMultiply 0.5) vectorAdd  _frontCorner;
+	//_sideRightPoint = ((_frontCorner2 vectorDiff _rearCorner2) vectorMultiply 0.5) vectorAdd  _frontCorner2;
+	[_frontHitchPoint,_rearHitchPoint];
 };
 
 SA_Attach_Tow_Ropes = {
@@ -196,18 +218,23 @@ SA_Attach_Tow_Ropes = {
 			private ["_towRopes","_vehicleHitch","_cargoHitch","_objDistance","_ropeLength"];
 			_towRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 			if(count _towRopes == 1) then {
-				/*_closestCargoHitch = [0,0,0];
-				_closestDistance = -1;
-				{
-					_distanceToHitch = player distance (_cargo modelToWorld _x);
-					if(_closestDistance < 0 || _distanceToHitch < _closestCargoHitch) then {
-						_closestCargoHitch = _x;
-						_closestDistance = _distanceToHitch;
-					};
-				} forEach ([_cargo] call SA_Get_Hitch_Points);
-				_cargoHitch = _closestCargoHitch;
+			
+				/*
+				private ["_cargoHitchPoints","_distanceToFrontHitch","_distanceToRearHitch","_isRearCargoHitch"];
+				_cargoHitchPoints = [_cargo] call SA_Get_Hitch_Points;
+				_distanceToFrontHitch = player distance (_cargo modelToWorld (_cargoHitchPoints select 0));
+				_distanceToRearHitch = player distance (_cargo modelToWorld (_cargoHitchPoints select 1));
+				if( _distanceToFrontHitch < _distanceToRearHitch ) then {
+					_cargoHitch = _cargoHitchPoints select 0;
+					_isRearCargoHitch = false;
+				} else {
+					_cargoHitch = _cargoHitchPoints select 1;
+					_isRearCargoHitch = true;
+				};
 				*/
+				
 				_cargoHitch = ([_cargo] call SA_Get_Hitch_Points) select 0;
+				
 				_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
 				_ropeLength = (ropeLength (_towRopes select 0));
 				_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
@@ -323,11 +350,16 @@ SA_Attach_Tow_Ropes_Action = {
 };
 
 SA_Attach_Tow_Ropes_Action_Check = {
-	private ["_vehicle","_towVehicle"];
+	private ["_vehicle","_towVehicle","_isCargoBeingTowed","_isCargoTowingCargo","_isChainingEnabled","_isTowVehicleBeingTowed","_isTowVehicleTowingCargo"];
 	_vehicle = cursorTarget;
 	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
 	if(!isNull _towVehicle && !isNull _vehicle) then {
-		[_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle;	
+		_isChainingEnabled = missionNamespace getVariable ["SA_TOW_CHAINS_ENABLED",false];
+		_isCargoBeingTowed = not isNull (_vehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
+		_isCargoTowingCargo = not isNull (_vehicle getVariable ["SA_TOWING_CARGO",objNull]);
+		_isTowVehicleBeingTowed = not isNull (_towVehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
+		_isTowVehicleTowingCargo = not isNull (_towVehicle getVariable ["SA_TOWING_CARGO",objNull]);
+		[_towVehicle,_vehicle] call SA_Is_Supported_Cargo && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
 	} else {
 		false;
 	};
@@ -403,7 +435,7 @@ SA_Is_Supported_Vehicle = {
 			if(_vehicle isKindOf _x) then {
 				_isSupported = true;
 			};
-		} forEach SA_TOW_SUPPORTED_VEHICLES;
+		} forEach (missionNamespace getVariable ["SA_TOW_SUPPORTED_VEHICLES_OVERRIDE",SA_TOW_SUPPORTED_VEHICLES]);
 	};
 	_isSupported;
 };
@@ -413,17 +445,11 @@ SA_TOW_RULES = [
 	["Tank","CAN_TOW","Car"],
 	["Tank","CAN_TOW","Ship"],
 	["Tank","CAN_TOW","Air"],
-	["Tank","CAN_TOW","Cargo_base_F"],
 	["Car","CAN_TOW","Car"],
 	["Car","CAN_TOW","Ship"],
 	["Car","CAN_TOW","Air"],
-	["Car","CANT_TOW","Helicopter"],
-	["Truck_F","CAN_TOW","Helicopter"],
-	["Truck_F","CAN_TOW","Cargo_base_F"],
 	["Ship","CAN_TOW","Ship"]
 ];
-
-SA_TOW_RULES_OVERRIDE = [];
 
 SA_Is_Supported_Cargo = {
 	params ["_vehicle","_cargo"];
@@ -440,7 +466,7 @@ SA_Is_Supported_Cargo = {
 					};
 				};
 			};
-		} forEach (SA_TOW_RULES + SA_TOW_RULES_OVERRIDE);
+		} forEach (missionNamespace getVariable ["SA_TOW_RULES_OVERRIDE",SA_TOW_RULES]);
 	};
 	_canTow;
 };
@@ -514,7 +540,7 @@ SA_Find_Nearby_Tow_Vehicles = {
 	_nearVehicles = [];
 	{
 		_nearVehicles append  (position player nearObjects [_x, 30]);
-	} forEach SA_TOW_SUPPORTED_VEHICLES;
+	} forEach (missionNamespace getVariable ["SA_TOW_SUPPORTED_VEHICLES_OVERRIDE",SA_TOW_SUPPORTED_VEHICLES]);
 	_nearVehiclesWithTowRopes = [];
 	{
 		_vehicle = _x;
@@ -551,3 +577,4 @@ if(!isDedicated) then {
 diag_log "Advanced Towing Loaded";
 
 //} remoteExecCall ["bis_fnc_call", 0,true]; 
+
