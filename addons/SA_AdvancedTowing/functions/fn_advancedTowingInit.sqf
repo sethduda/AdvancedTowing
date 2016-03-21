@@ -219,6 +219,7 @@ SA_Attach_Tow_Ropes = {
 			_towRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 			if(count _towRopes == 1) then {
 			
+				/*
 				private ["_cargoHitchPoints","_distanceToFrontHitch","_distanceToRearHitch","_isRearCargoHitch"];
 				_cargoHitchPoints = [_cargo] call SA_Get_Hitch_Points;
 				_distanceToFrontHitch = player distance (_cargo modelToWorld (_cargoHitchPoints select 0));
@@ -230,6 +231,9 @@ SA_Attach_Tow_Ropes = {
 					_cargoHitch = _cargoHitchPoints select 1;
 					_isRearCargoHitch = true;
 				};
+				*/
+				
+				_cargoHitch = ([_cargo] call SA_Get_Hitch_Points) select 0;
 				
 				_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
 				_ropeLength = (ropeLength (_towRopes select 0));
@@ -243,7 +247,7 @@ SA_Attach_Tow_Ropes = {
 					hideObject _helper;
 					_helper remoteExec ["hideObjectGlobal",2];
 					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
-					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength,_isRearCargoHitch] spawn SA_Simulate_Towing;
+					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
 				};
 			};
 		} else {
@@ -441,13 +445,9 @@ SA_TOW_RULES = [
 	["Tank","CAN_TOW","Car"],
 	["Tank","CAN_TOW","Ship"],
 	["Tank","CAN_TOW","Air"],
-	["Tank","CAN_TOW","Cargo_base_F"],
-	["Tank","CAN_TOW","StaticCannon"],
 	["Car","CAN_TOW","Car"],
 	["Car","CAN_TOW","Ship"],
 	["Car","CAN_TOW","Air"],
-	["Car","CAN_TOW","StaticCannon"],
-	["Truck_F","CAN_TOW","Cargo_base_F"],
 	["Ship","CAN_TOW","Ship"]
 ];
 
