@@ -1,4 +1,11 @@
-/*
+/**
+ * fn_advancedTowingInit.sqf
+ *
+ * eXileLoneDevs presents SethDuda's Advanced Towing for Exile
+ * Originally by SethDuda, modified by Team XLD
+ * www.DonkeyPunch.INFO -or- www.ExileMod.Com
+ * © 2016 DirtySanchez / ka0s<3
+ *
 The MIT License (MIT)
 
 Copyright (c) 2016 Seth Duda
@@ -10,6 +17,33 @@ The above copyright notice and this permission notice shall be included in all c
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+//Set chaining enabled
+SA_TOW_CHAINS_ENABLED = true;
+// Set your maximum allowed towed vehicles(only works if Chains enabled = true;)
+XLD_MAX_TOWED_VEHICLES = 3;
+// Set in-safezone check notifications true=ON (alerts player on failed attempt while in safezone) false=OFF (no options in safezone for towing)
+XLD_SAFEZONE_NOTIFICATION = true;
+// Set in-safezone check notifications true=ON (alerts player on failed attempt while vehicle is Locked) false=OFF (no options while vehicle is Locked for towing)
+XLD_LOCKED_NOTIFICATION = true;
+// Set vehicle types supported
+SA_TOW_SUPPORTED_VEHICLES = ["Tank", "Car", "Ship"];
+//Set vehicle rules for towing
+SA_TOW_RULES = [
+	["Tank","CAN_TOW","Tank"],
+	["Tank","CAN_TOW","Car"],
+	["Tank","CAN_TOW","Ship"],
+	["Tank","CAN_TOW","Air"],
+	["Tank","CAN_TOW","Cargo_base_F"],
+	["Car","CAN_TOW","Car"],
+	["Car","CAN_TOW","Ship"],
+	["Car","CAN_TOW","Air"],
+	["Car","CANT_TOW","Helicopter"],
+	["Truck_F","CAN_TOW","Helicopter"],
+	["Truck_F","CAN_TOW","Cargo_base_F"],
+	["Ship","CAN_TOW","Ship"]
+];
+
+///////////////////////////////////////////////////////////////////////
 #define SA_Find_Surface_ASL_Under_Position(_object,_positionAGL,_returnSurfaceASL,_canFloat) \
 _objectASL = AGLToASL (_object modelToWorldVisual (getCenterOfMass _object)); \
 _surfaceIntersectStartASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) + 1]; \
@@ -38,11 +72,7 @@ SA_Find_Surface_ASL_Under_Position(_object, (_object modelToWorldVisual _modelOf
 SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceAGL,_canFloat); \
 _returnSurfaceAGL = ASLtoAGL _returnSurfaceAGL;
 
-{
-
 diag_log "Advanced Towing Loading...";
-
-if(!isNil "SA_TOW_INIT") exitWith {};
 
 SA_TOW_INIT = true;
 
@@ -225,36 +255,45 @@ SA_Attach_Tow_Ropes = {
 			private ["_towRopes","_vehicleHitch","_cargoHitch","_objDistance","_ropeLength"];
 			_towRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 			if(count _towRopes == 1) then {
-			
-				/*
-				private ["_cargoHitchPoints","_distanceToFrontHitch","_distanceToRearHitch","_isRearCargoHitch"];
-				_cargoHitchPoints = [_cargo] call SA_Get_Hitch_Points;
-				_distanceToFrontHitch = player distance (_cargo modelToWorld (_cargoHitchPoints select 0));
-				_distanceToRearHitch = player distance (_cargo modelToWorld (_cargoHitchPoints select 1));
-				if( _distanceToFrontHitch < _distanceToRearHitch ) then {
-					_cargoHitch = _cargoHitchPoints select 0;
-					_isRearCargoHitch = false;
+				/*Team XLD(DS) - Prevent players from doing a Loop of towed Vehicles*/
+				if((count (ropeAttachedObjects _cargo)) < 1 ) then {
+					/*Team XLD(DS) - Get number of currently towed vehicles for Max limit settings*/
+					_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",[]];
+					_vehTowedCounter = count _vehTowedArray;
+					if (XLD_MAX_TOWED_VEHICLES > _vehTowedCounter) then {
+						_cargoHitch = ([_cargo] call SA_Get_Hitch_Points) select 0;
+						_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
+						_ropeLength = (ropeLength (_towRopes select 0));
+						_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
+						if( _objDistance > _ropeLength ) then {
+							/*Team XLD(DS) - Add proper Exile notification message to player*/
+							_towingName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+							format["The tow ropes are too short. Move your %1 closer.",_towingName] remoteExec ["SA_Hint_Whoops", _player]; 
+						} else {		
+							[_vehicle,_player] call SA_Drop_Tow_Ropes;
+							_helper = "Land_Can_V2_F" createVehicle position _cargo;
+							_helper attachTo [_cargo, _cargoHitch];
+							hideObject _helper;
+							[_helper] remoteExec ["SA_Hide_Object_Global",2];
+							[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
+							[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
+							/*Team XLD(DS) - Add proper Exile notification message to player*/
+							_towedName=getText (configFile >> "CfgVehicles" >> typeOf _cargo >> "displayName");
+							format["You have attached the ropes to the %1!",_towedName] remoteExec ["SA_Hint_Success", _player];
+							_vehTowedArray = _vehTowedArray + [_towRopes];
+							_player setVariable["XLD_TOWED_ARRAY",_vehTowedArray];
+						};
+					} else {
+						/*Team XLD(DS) - Add proper Exile notification message to player*/
+						_towedName=getText (configFile >> "CfgVehicles" >> typeOf _cargo >> "displayName");
+						_msg=format["You can't tow more than %1 vehicles with your %2",XLD_MAX_TOWED_VEHICLES,_towedName];
+						["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
+					};
 				} else {
-					_cargoHitch = _cargoHitchPoints select 1;
-					_isRearCargoHitch = true;
-				};
-				*/
-				
-				_cargoHitch = ([_cargo] call SA_Get_Hitch_Points) select 0;
-				
-				_vehicleHitch = ([_vehicle] call SA_Get_Hitch_Points) select 1;
-				_ropeLength = (ropeLength (_towRopes select 0));
-				_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
-				if( _objDistance > _ropeLength ) then {
-					["The tow ropes are too short. Move vehicle closer."] remoteExec ["SA_Hint", _player]; 
-				} else {		
-					[_vehicle,_player] call SA_Drop_Tow_Ropes;
-					_helper = "Land_Can_V2_F" createVehicle position _cargo;
-					_helper attachTo [_cargo, _cargoHitch];
-					hideObject _helper;
-					[_helper] remoteExec ["SA_Hide_Object_Global",2];
-					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
-					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
+					/*Team XLD(DS) - Add proper Exile notification message to player*/
+					_towedName=getText (configFile >> "CfgVehicles" >> typeOf _cargo >> "displayName");
+					_msg=format["The %1 is the lead vehicle of another chain",_towedName];
+					["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
 				};
 			};
 		} else {
@@ -265,18 +304,31 @@ SA_Attach_Tow_Ropes = {
 
 SA_Take_Tow_Ropes = {
 	params ["_vehicle","_player"];
-	if(local _vehicle) then {
-		diag_log format ["Take Tow Ropes Called %1", _this];
-		private ["_existingTowRopes","_hitchPoint","_rope"];
-		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
-		if(count _existingTowRopes == 0) then {
-			_hitchPoint = [_vehicle] call SA_Get_Hitch_Points select 1;
-			_rope = ropeCreate [_vehicle, _hitchPoint, 10];
-			_vehicle setVariable ["SA_Tow_Ropes",[_rope],true];
-			_this call SA_Pickup_Tow_Ropes;
+	_hasItems = ("Exile_Item_Rope" in (magazines _player));
+	_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",""];
+	if (_hasItems) then {
+		if(local _vehicle) then {
+			diag_log format ["Take Tow Ropes Called %1", _this];
+			private ["_existingTowRopes","_hitchPoint","_rope"];
+			_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
+			if(count _existingTowRopes == 0) then {
+				_hitchPoint = [_vehicle] call SA_Get_Hitch_Points select 1;
+				_rope = ropeCreate [_vehicle, _hitchPoint, 10];
+				_vehicle setVariable ["SA_Tow_Ropes",[_rope],true];
+				_this call SA_Pickup_Tow_Ropes;
+				/*Team XLD(DS) - remove rope from player*/
+				_player removeItem "Exile_Item_Rope";
+				//_vehTowedArray = [_vehTowedArray] + [_existingTowRopes];
+				//player setVariable ["XLD_TOWED_ARRAY",_vehTowedArray];
+			};
+		} else {
+			_this remoteExecCall ["SA_Take_Tow_Ropes", _vehicle]; 
 		};
 	} else {
-		_this remoteExecCall ["SA_Take_Tow_Ropes", _vehicle]; 
+		/*Team XLD(DS) - Send notification of rope required to tow*/
+		_towingName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+		_msg = format["You dont have any rope to tow with the %1!",_towingName];
+		["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
 	};
 };
 
@@ -292,6 +344,12 @@ SA_Put_Away_Tow_Ropes = {
 				ropeDestroy _x;
 			} forEach _existingTowRopes;
 			_vehicle setVariable ["SA_Tow_Ropes",nil,true];
+			/*Team XLD(DS) - Return rope on successful put away*/
+			_player addItem "Exile_Item_Rope";
+			/*Team XLD(DS) - Remove 1 count on successful put away*/
+			_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",[]];
+			_vehTowedArray = _vehTowedArray - [_existingTowRopes];
+			_player setVariable ["XLD_TOWED_ARRAY",_vehTowedArray];
 		};
 	} else {
 		_this remoteExecCall ["SA_Put_Away_Tow_Ropes", _vehicle]; 
@@ -300,6 +358,7 @@ SA_Put_Away_Tow_Ropes = {
 
 SA_Pickup_Tow_Ropes = {
 	params ["_vehicle","_player"];
+	_towRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 	if(local _vehicle) then {
 		private ["_attachedObj","_helper"];
 		{
@@ -317,6 +376,9 @@ SA_Pickup_Tow_Ropes = {
 		[_helper] remoteExec ["SA_Hide_Object_Global",2];
 		_player setVariable ["SA_Tow_Ropes_Vehicle", _vehicle,true];
 		_player setVariable ["SA_Tow_Ropes_Pick_Up_Helper", _helper,true];
+		_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",[]];
+		_vehTowedArray = _vehTowedArray - [_towRopes];
+		_player setVariable ["XLD_TOWED_ARRAY",_vehTowedArray];
 	} else {
 		_this remoteExecCall ["SA_Pickup_Tow_Ropes", _vehicle]; 
 	};
@@ -345,10 +407,27 @@ SA_Attach_Tow_Ropes_Action = {
 	private ["_vehicle","_towVehicle"];
 	_vehicle = cursorTarget;
 	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if([_vehicle] call SA_Can_Attach_Tow_Ropes) then {
-		[_vehicle,player] call SA_Attach_Tow_Ropes;
+	/*Team XLD(DS) - Prevent Towing from Locked Vehicles*/
+	_isNotLocked = (locked ExileClientInteractionObject !=2);
+	/*Team XLD(DS) - Prevent Deploying Rope in Safezones (troll stopper)*/
+	if(!ExilePlayerInSafezone) then {
+		if(_isNotLocked) then {
+			if([_vehicle] call SA_Can_Attach_Tow_Ropes) then {
+				[_vehicle,player] call SA_Attach_Tow_Ropes;
+			} else {
+				false;
+			};
+		} else {
+			/*Team XLD(DS) - Send proper Exile Whoops notification message to player*/
+			_towedName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+			_msg = format["The %1 is LOCKED!",_towedName];
+			["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
+		};
 	} else {
-		false;
+		/*Team XLD(DS) - Send proper Exile Whoops notification message to player*/
+		_towedName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+		_msg = format["You can't attach ropes to %1 in a SafeZone!",_towedName];
+		["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
 	};
 };
 
@@ -369,10 +448,10 @@ SA_Can_Attach_Tow_Ropes = {
 		_isTowVehicleBeingTowed = not isNull (_towVehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
 		_isTowVehicleTowingCargo = not isNull (_towVehicle getVariable ["SA_TOWING_CARGO",objNull]);
 		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
-		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+		if!(missionNamespace getVariable ["XLD_LOCKED_NOTIFICATION",true]) then {
 			_canBeTowed = _canBeTowed && locked _cargo <= 1;
 		};
-		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+		if!(missionNamespace getVariable ["XLD_SAFEZONE_NOTIFICATION",true]) then {
 			if(!isNil "ExilePlayerInSafezone") then {
 				_canBeTowed = _canBeTowed && !ExilePlayerInSafezone;
 			};
@@ -441,10 +520,6 @@ SA_Drop_Tow_Ropes_Action = {
 	};
 };
 
-SA_TOW_SUPPORTED_VEHICLES = [
-	"Tank", "Car", "Ship"
-];
-
 SA_Is_Supported_Vehicle = {
 	params ["_vehicle","_isSupported"];
 	_isSupported = false;
@@ -457,17 +532,6 @@ SA_Is_Supported_Vehicle = {
 	};
 	_isSupported;
 };
-
-SA_TOW_RULES = [
-	["Tank","CAN_TOW","Tank"],
-	["Tank","CAN_TOW","Car"],
-	["Tank","CAN_TOW","Ship"],
-	["Tank","CAN_TOW","Air"],
-	["Car","CAN_TOW","Car"],
-	["Car","CAN_TOW","Ship"],
-	["Car","CAN_TOW","Air"],
-	["Ship","CAN_TOW","Ship"]
-];
 
 SA_Is_Supported_Cargo = {
 	params ["_vehicle","_cargo"];
@@ -489,9 +553,15 @@ SA_Is_Supported_Cargo = {
 	_canTow;
 };
 
-SA_Hint = {
+SA_Hint_Whoops = {
 	params ["_msg"];
-	hint _msg;
+	/*Team XLD(DS) - Send proper Exile Whoops notification message to player*/
+	["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
+};
+SA_Hint_Success = {
+	params ["_msg"];
+	/*Team XLD(DS) - Send proper Exile Success notification message to player*/
+	["Success",[_msg]] call ExileClient_gui_notification_event_addNotification;
 };
 
 SA_Hide_Object_Global = {
@@ -507,8 +577,23 @@ SA_Set_Owner = {
 SA_Take_Tow_Ropes_Action = {
 	private ["_vehicle"];
 	_vehicle = cursorTarget;
-	if([_vehicle] call SA_Is_Supported_Vehicle) then {
-		[_vehicle,player] call SA_Take_Tow_Ropes;
+	/*Team XLD(DS) - Prevent Towing from Locked Vehicles*/
+	_isNotLocked = (locked ExileClientInteractionObject !=2);
+	/*Team XLD(DS) - Prevent Deploying Rope in Safezones (troll stopper)*/
+	if(!ExilePlayerInSafezone) then {
+		if(([_vehicle] call SA_Is_Supported_Vehicle) && (_isNotLocked)) then {
+			[_vehicle,player] call SA_Take_Tow_Ropes;
+		} else {
+			/*Team XLD(DS) - Send proper Exile Whoops notification message to player*/
+			_towingName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+			_msg = format["The %1 is LOCKED!",_towingName];
+			["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
+		};
+	} else {
+		/*Team XLD(DS) - Send proper Exile Whoops notification message to player*/
+		_towingName=getText (configFile >> "CfgVehicles" >> typeOf _vehicle >> "displayName");
+		_msg = format["Your %1 can't tow in a SafeZone!",_towingName];
+		["Whoops",[_msg]] call ExileClient_gui_notification_event_addNotification;
 	};
 };
 
@@ -536,9 +621,11 @@ SA_Add_Player_Tow_Actions = {
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
 
 	player addAction ["Cannot Attach Tow Ropes", { 
-		hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
+		//hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!";
+		/*Team XLD(DS) - Send proper Exile Notification for players*/
+		["Whoops",["Your vehicle is not strong enough to tow this. Find a larger vehicle!"]] call ExileClient_gui_notification_event_addNotification;
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
-
+	
 	player addAction ["Drop Tow Ropes", { 
 		[] call SA_Drop_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Drop_Tow_Ropes_Action_Check"];
@@ -584,6 +671,8 @@ if(!isDedicated) then {
 				if!( player getVariable ["SA_Tow_Actions_Loaded",false] ) then {
 					[] call SA_Add_Player_Tow_Actions;
 					player setVariable ["SA_Tow_Actions_Loaded",true];
+					//player setVariable ["XLD_TOWED_ARRAY",false];
+					player setVariable ["XLD_TOWED_COUNTER",0];
 				};
 			};
 			missionNamespace setVariable ["SA_Nearby_Tow_Vehicles", (call SA_Find_Nearby_Tow_Vehicles)];
@@ -593,6 +682,3 @@ if(!isDedicated) then {
 };
 
 diag_log "Advanced Towing Loaded";
-
-} remoteExecCall ["bis_fnc_call", 0,true]; 
-
