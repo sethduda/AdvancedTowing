@@ -305,7 +305,7 @@ SA_Attach_Tow_Ropes = {
 SA_Take_Tow_Ropes = {
 	params ["_vehicle","_player"];
 	_hasItems = ("Exile_Item_Rope" in (magazines _player));
-	_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",""];
+	_vehTowedArray = _player getVariable ["XLD_TOWED_ARRAY",[]];
 	if (_hasItems) then {
 		if(local _vehicle) then {
 			diag_log format ["Take Tow Ropes Called %1", _this];
@@ -671,8 +671,7 @@ if(!isDedicated) then {
 				if!( player getVariable ["SA_Tow_Actions_Loaded",false] ) then {
 					[] call SA_Add_Player_Tow_Actions;
 					player setVariable ["SA_Tow_Actions_Loaded",true];
-					//player setVariable ["XLD_TOWED_ARRAY",false];
-					player setVariable ["XLD_TOWED_COUNTER",0];
+					player setVariable ["XLD_TOWED_ARRAY",[]];
 				};
 			};
 			missionNamespace setVariable ["SA_Nearby_Tow_Vehicles", (call SA_Find_Nearby_Tow_Vehicles)];
