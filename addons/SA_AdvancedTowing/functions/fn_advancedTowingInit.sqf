@@ -38,6 +38,13 @@ SA_Find_Surface_ASL_Under_Position(_object, (_object modelToWorldVisual _modelOf
 SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceAGL,_canFloat); \
 _returnSurfaceAGL = ASLtoAGL _returnSurfaceAGL;
 
+#define SA_Get_Cargo(_vehicle,_cargo) \
+if( count (ropeAttachedObjects _vehicle) == 0 ) then { \
+	_cargo = objNull; \
+} else { \
+	_cargo = ((ropeAttachedObjects _vehicle) select 0) getVariable ["SA_Cargo",objNull]; \
+};
+		
 SA_Advanced_Towing_Install = {
 
 // Prevent advanced towing from installing twice
@@ -46,15 +53,73 @@ SA_TOW_INIT = true;
 
 diag_log "Advanced Towing Loading...";
 
+SA_Simulate_Towing_Speed = {
+	
+	params ["_vehicle"];
+	
+	private ["_runSimulation","_currentCargo","_maxVehicleSpeed","_maxTowedVehicles","_vehicleMass"];
+	
+	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
+	_vehicleMass = 1000 max (getMass _vehicle);
+	_maxTowedCargo = missionNamespace getVariable ["SA_MAX_TOWED_CARGO",1];
+	_runSimulation = true;
+	
+	private ["_currentVehicle","_totalCargoMass","_totalCargoCount","_findNextCargo","_towRopes","_ropeLength"];
+	private ["_ends","_endsDistance","_currentMaxSpeed","_newMaxSpeed"];
+	
+	while {_runSimulation} do {
+	
+		// Calculate total mass and count of cargo being towed (only takes into account
+		// cargo that's actively being towed (e.g. there's no slack in the rope)
+		
+		_currentVehicle = _vehicle;
+		_totalCargoMass = 0;
+		_totalCargoCount = 0;
+		_findNextCargo = true;
+		while {_findNextCargo} do {
+			_findNextCargo = false;
+			SA_Get_Cargo(_currentVehicle,_currentCargo);
+			if(!isNull _currentCargo) then {
+				_towRopes = _currentVehicle getVariable ["SA_Tow_Ropes",[]];
+				if(count _towRopes > 0) then {
+					_ropeLength = ropeLength (_towRopes select 0);
+					_ends = ropeEndPosition (_towRopes select 0);
+					_endsDistance = (_ends select 0) distance (_ends select 1);
+					if( _endsDistance >= _ropeLength - 2 ) then {
+						_totalCargoMass = _totalCargoMass + (1000 max (getMass _currentCargo));
+						_totalCargoCount = _totalCargoCount + 1;
+						_currentVehicle = _currentCargo;
+						_findNextCargo = true;
+					};
+				};
+			};
+		};
+	
+		_newMaxSpeed = _maxVehicleSpeed / (1 max ((_totalCargoMass /  _vehicleMass) * 2));
+		_newMaxSpeed = (_maxVehicleSpeed * 0.75) min _newMaxSpeed;
+		
+		// Prevent vehicle from moving if trying to move more cargo than pre-defined max
+		if(_totalCargoCount > _maxTowedCargo) then {
+			_newMaxSpeed = 0;
+		};
+		
+		_currentMaxSpeed = _vehicle getVariable ["SA_Max_Tow_Speed",_maxVehicleSpeed];
+		
+		if(_currentMaxSpeed != _newMaxSpeed) then {
+			_vehicle setVariable ["SA_Max_Tow_Speed",_newMaxSpeed];
+		};
+		
+		sleep 0.1;
+		
+	};
+};
+
 SA_Simulate_Towing = {
 
 	params ["_vehicle","_vehicleHitchModelPos","_cargo","_cargoHitchModelPos","_ropeLength"];
-	
-	_cargo setVariable ["SA_TOWING_VEHICLE",_vehicle,true];
-	_vehicle setVariable ["SA_TOWING_CARGO",_cargo,true];
-	
+
 	private ["_lastCargoHitchPosition","_lastCargoVectorDir","_cargoLength","_maxDistanceToCargo","_lastMovedCargoPosition","_cargoHitchPoints"];
-	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects"];
+	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects","_currentCargo"];
 	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass","_cargoCanFloat"];	
 	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
 	
@@ -101,6 +166,9 @@ SA_Simulate_Towing = {
 
 	_doExit = false;
 	
+	// Start vehicle speed simulation
+	[_vehicle] spawn SA_Simulate_Towing_Speed;
+	
 	while {!_doExit} do {
 
 		_vehicleHitchPosition = _vehicle modelToWorld _vehicleHitchModelPos;
@@ -145,8 +213,8 @@ SA_Simulate_Towing = {
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
 			_lastMovedCargoPosition = _cargoPosition;
 
-			_massAdjustedMaxSpeed = (0.1 * _maxVehicleSpeed) max ((0.75 * _maxVehicleSpeed) * ( 1 min (_vehicleMass / _cargoMass) ));			
-			if(speed _vehicle > (_massAdjustedMaxSpeed)+0.1 && _massAdjustedMaxSpeed > 0) then {
+			_massAdjustedMaxSpeed = _vehicle getVariable ["SA_Max_Tow_Speed",_maxVehicleSpeed];		
+			if(speed _vehicle > (_massAdjustedMaxSpeed)+0.1) then {
 				_vehicle setVelocity ((vectorNormalized (velocity _vehicle)) vectorMultiply (_massAdjustedMaxSpeed/3.6));
 			};
 			
@@ -159,27 +227,21 @@ SA_Simulate_Towing = {
 			
 		};
 		
+		// If vehicle isn't local to the client, switch client running towing simulation
 		if(!local _vehicle) then {
 			[_this,"SA_Simulate_Towing",_vehicle] call SA_RemoteExec;
 			_doExit = true;
 		};
 		
-		if( count (ropeAttachedObjects _vehicle) == 0 ) then {
+		// If the vehicle isn't towing anything, stop the towing simulation
+		SA_Get_Cargo(_vehicle,_currentCargo);
+		if(isNull _currentCargo) then {
 			_doExit = true;
-		} else {
-			_attachedObjects = ropeAttachedObjects _vehicle;
-			if( (attachedTo (_attachedObjects select 0)) != _cargo ) then {
-				_doExit = true;
-			};
 		};
 		
 		sleep 0.01;
 		
 	};
-
-	_cargo setVariable ["SA_TOWING_VEHICLE",nil,true];
-	_vehicle setVariable ["SA_TOWING_CARGO",nil,true];	
-	
 };
 
 SA_Get_Corner_Points = {
@@ -251,6 +313,7 @@ SA_Attach_Tow_Ropes = {
 					[_vehicle,_player] call SA_Drop_Tow_Ropes;
 					_helper = "Land_Can_V2_F" createVehicle position _cargo;
 					_helper attachTo [_cargo, _cargoHitch];
+					_helper setVariable ["SA_Cargo",_cargo,true];
 					hideObject _helper;
 					[[_helper],"SA_Hide_Object_Global"] call SA_RemoteExecServer;
 					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
@@ -360,15 +423,10 @@ SA_Attach_Tow_Ropes_Action_Check = {
 
 SA_Can_Attach_Tow_Ropes = {
 	params ["_cargo"];
-	private ["_towVehicle","_isCargoBeingTowed","_isCargoTowingCargo","_isChainingEnabled","_isTowVehicleBeingTowed","_isTowVehicleTowingCargo","_canBeTowed"];
+	private ["_towVehicle","_canBeTowed"];
 	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
 	if(!isNull _towVehicle && !isNull _cargo) then {
-		_isChainingEnabled = missionNamespace getVariable ["SA_TOW_CHAINS_ENABLED",false];
-		_isCargoBeingTowed = not isNull (_cargo getVariable ["SA_TOWING_VEHICLE",objNull]);
-		_isCargoTowingCargo = not isNull (_cargo getVariable ["SA_TOWING_CARGO",objNull]);
-		_isTowVehicleBeingTowed = not isNull (_towVehicle getVariable ["SA_TOWING_VEHICLE",objNull]);
-		_isTowVehicleTowingCargo = not isNull (_towVehicle getVariable ["SA_TOWING_CARGO",objNull]);
-		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo && !_isTowVehicleTowingCargo && !_isCargoBeingTowed && ((!_isTowVehicleBeingTowed && !_isCargoTowingCargo) || _isChainingEnabled);		
+		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo;		
 		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
 			_canBeTowed = _canBeTowed && locked _cargo <= 1;
 		};
