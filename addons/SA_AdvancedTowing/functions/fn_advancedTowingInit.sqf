@@ -131,6 +131,7 @@ SA_Simulate_Towing = {
 	_cargoModelCenterGroundPosition = _cargo worldToModelVisual _cargoCenterOfMassAGL;
 	_cargoModelCenterGroundPosition set [0,0];
 	_cargoModelCenterGroundPosition set [1,0];
+	_cargoModelCenterGroundPosition set [2, (_cargoModelCenterGroundPosition select 2) - 0.10]; // Adjust height so that it doesn't ride directly on ground
 	
 	// Calculate cargo model corner points
 	private ["_cargoCornerPoints"];
@@ -202,13 +203,15 @@ SA_Simulate_Towing = {
 			_surfaceNormal1 = (_cargoCorner1ASL vectorFromTo _cargoCorner3ASL) vectorCrossProduct (_cargoCorner1ASL vectorFromTo _cargoCorner2ASL);
 			_surfaceNormal2 = (_cargoCorner4ASL vectorFromTo _cargoCorner2ASL) vectorCrossProduct (_cargoCorner4ASL vectorFromTo _cargoCorner3ASL);
 			_surfaceNormal = _surfaceNormal1 vectorAdd _surfaceNormal2;
-
+			
 			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
-
+			
+			_cargo allowDamage false;
 			_cargo setVectorDir _newCargoDir;
 			_cargo setVectorUp _surfaceNormal;
 			_cargo setPosWorld _newCargoPosition;
-
+			_cargo allowDamage true;
+			
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
 			_lastMovedCargoPosition = _cargoPosition;
