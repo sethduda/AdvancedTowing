@@ -38,13 +38,13 @@ SA_Find_Surface_ASL_Under_Position(_object, (_object modelToWorldVisual _modelOf
 SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceAGL,_canFloat); \
 _returnSurfaceAGL = ASLtoAGL _returnSurfaceAGL;
 
-{
+SA_Advanced_Towing_Install = {
+
+// Prevent advanced towing from installing twice
+if(!isNil "SA_TOW_INIT") exitWith {};
+SA_TOW_INIT = true;
 
 diag_log "Advanced Towing Loading...";
-
-if(!isNil "SA_TOW_INIT") exitWith {};
-
-SA_TOW_INIT = true;
 
 SA_Simulate_Towing = {
 
@@ -78,7 +78,7 @@ SA_Simulate_Towing = {
 	
 	// Try to set cargo owner if the towing client doesn't own the cargo
 	if(local _vehicle && !local _cargo) then {
-		[_cargo, clientOwner] remoteExec ["SA_Set_Owner", 2];
+		[[_cargo, clientOwner],"SA_Set_Owner"] call SA_RemoteExecServer;
 	};
 	
 	_vehicleHitchModelPos set [2,0];
@@ -160,7 +160,7 @@ SA_Simulate_Towing = {
 		};
 		
 		if(!local _vehicle) then {
-			_this remoteExec ["SA_Simulate_Towing", _vehicle]; 
+			[_this,"SA_Simulate_Towing",_vehicle] call SA_RemoteExec;
 			_doExit = true;
 		};
 		
@@ -246,19 +246,19 @@ SA_Attach_Tow_Ropes = {
 				_ropeLength = (ropeLength (_towRopes select 0));
 				_objDistance = ((_vehicle modelToWorld _vehicleHitch) distance (_cargo modelToWorld _cargoHitch));
 				if( _objDistance > _ropeLength ) then {
-					["The tow ropes are too short. Move vehicle closer."] remoteExec ["SA_Hint", _player]; 
+					[["The tow ropes are too short. Move vehicle closer.", false],"SA_Hint",_player] call SA_RemoteExec;
 				} else {		
 					[_vehicle,_player] call SA_Drop_Tow_Ropes;
 					_helper = "Land_Can_V2_F" createVehicle position _cargo;
 					_helper attachTo [_cargo, _cargoHitch];
 					hideObject _helper;
-					[_helper] remoteExec ["SA_Hide_Object_Global",2];
+					[[_helper],"SA_Hide_Object_Global"] call SA_RemoteExecServer;
 					[_helper, [0,0,0], [0,0,-1]] ropeAttachTo (_towRopes select 0);
 					[_vehicle,_vehicleHitch,_cargo,_cargoHitch,_ropeLength] spawn SA_Simulate_Towing;
 				};
 			};
 		} else {
-			_this remoteExecCall ["SA_Attach_Tow_Ropes", _vehicle]; 
+			[_this,"SA_Attach_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
 		};
 	};
 };
@@ -276,7 +276,7 @@ SA_Take_Tow_Ropes = {
 			_this call SA_Pickup_Tow_Ropes;
 		};
 	} else {
-		_this remoteExecCall ["SA_Take_Tow_Ropes", _vehicle]; 
+		[_this,"SA_Take_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
 	};
 };
 
@@ -294,7 +294,7 @@ SA_Put_Away_Tow_Ropes = {
 			_vehicle setVariable ["SA_Tow_Ropes",nil,true];
 		};
 	} else {
-		_this remoteExecCall ["SA_Put_Away_Tow_Ropes", _vehicle]; 
+		[_this,"SA_Put_Away_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
 	};
 };
 
@@ -314,11 +314,11 @@ SA_Pickup_Tow_Ropes = {
 			_helper attachTo [_player, [-0.1, 0.1, 0.15], "Pelvis"];
 		} forEach (_vehicle getVariable ["SA_Tow_Ropes",[]]);
 		hideObject _helper;
-		[_helper] remoteExec ["SA_Hide_Object_Global",2];
+		[[_helper],"SA_Hide_Object_Global"] call SA_RemoteExecServer;
 		_player setVariable ["SA_Tow_Ropes_Vehicle", _vehicle,true];
 		_player setVariable ["SA_Tow_Ropes_Pick_Up_Helper", _helper,true];
 	} else {
-		_this remoteExecCall ["SA_Pickup_Tow_Ropes", _vehicle]; 
+		[_this,"SA_Pickup_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
 	};
 };
 
@@ -337,7 +337,7 @@ SA_Drop_Tow_Ropes = {
 		_player setVariable ["SA_Tow_Ropes_Vehicle", nil,true];
 		_player setVariable ["SA_Tow_Ropes_Pick_Up_Helper", nil,true];
 	} else {
-		_this remoteExecCall ["SA_Drop_Tow_Ropes", _vehicle]; 
+		[_this,"SA_Drop_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
 	};
 };
 
@@ -490,8 +490,16 @@ SA_Is_Supported_Cargo = {
 };
 
 SA_Hint = {
-	params ["_msg"];
-	hint _msg;
+    params ["_msg",["_isSuccess",true]];
+    if(!isNil "ExileClient_gui_notification_event_addNotification") then {
+		if(_isSuccess) then {
+			["Success", [_msg]] call ExileClient_gui_notification_event_addNotification; 
+		} else {
+			["Whoops", [_msg]] call ExileClient_gui_notification_event_addNotification; 
+		};
+    } else {
+        hint _msg;
+    };
 };
 
 SA_Hide_Object_Global = {
@@ -536,7 +544,7 @@ SA_Add_Player_Tow_Actions = {
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
 
 	player addAction ["Cannot Attach Tow Ropes", { 
-		hint "Your vehicle is not strong enough to tow this. Find a larger vehicle!"; 
+		["Your vehicle not strong enough. Find a larger vehicle!",false] call SA_Hint;
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
 
 	player addAction ["Drop Tow Ropes", { 
@@ -576,7 +584,6 @@ SA_Find_Nearby_Tow_Vehicles = {
 	_nearVehiclesWithTowRopes;
 };
 
-
 if(!isDedicated) then {
 	[] spawn {
 		while {true} do {
@@ -592,7 +599,75 @@ if(!isDedicated) then {
 	};
 };
 
+SA_RemoteExec = {
+	params ["_params","_functionName","_target",["_isCall",false]];
+	if(!isNil "ExileClient_system_network_send") then {
+		["AdvancedTowingRemoteExecClient",[_params,_functionName,_target,_isCall]] call ExileClient_system_network_send;
+	} else {
+		if(_isCall) then {
+			_params remoteExecCall [_functionName, _target];
+		} else {
+			_params remoteExec [_functionName, _target];
+		};
+	};
+};
+
+SA_RemoteExecServer = {
+	params ["_params","_functionName",["_isCall",false]];
+	if(!isNil "ExileClient_system_network_send") then {
+		["AdvancedTowingRemoteExecServer",[_params,_functionName,_isCall]] call ExileClient_system_network_send;
+	} else {
+		if(_isCall) then {
+			_params remoteExecCall [_functionName, 2];
+		} else {
+			_params remoteExec [_functionName, 2];
+		};
+	};
+};
+
+if(isServer) then {
+	
+	// Adds support for exile network calls (Only used when running exile) //
+	
+	SA_SUPPORTED_REMOTEEXECSERVER_FUNCTIONS = ["SA_Set_Owner","SA_Hide_Object_Global"];
+	
+	ExileServer_AdvancedTowing_network_AdvancedTowingRemoteExecServer = {
+		params ["_sessionId", "_messageParameters",["_isCall",false]];
+		_messageParameters params ["_params","_functionName"];
+		if(_functionName in SA_SUPPORTED_REMOTEEXECSERVER_FUNCTIONS) then {
+			if(_isCall) then {
+				_params call (missionNamespace getVariable [_functionName,{}]);
+			} else {
+				_params spawn (missionNamespace getVariable [_functionName,{}]);
+			};
+		};
+	};
+	
+	SA_SUPPORTED_REMOTEEXECCLIENT_FUNCTIONS = ["SA_Simulate_Towing","SA_Attach_Tow_Ropes","SA_Take_Tow_Ropes","SA_Put_Away_Tow_Ropes","SA_Pickup_Tow_Ropes","SA_Drop_Tow_Ropes","SA_Hint"];
+	
+	ExileServer_AdvancedTowing_network_AdvancedTowingRemoteExecClient = {
+		params ["_sessionId", "_messageParameters"];
+		_messageParameters params ["_params","_functionName","_target",["_isCall",false]];
+		if(_functionName in SA_SUPPORTED_REMOTEEXECCLIENT_FUNCTIONS) then {
+			if(_isCall) then {
+				_params remoteExecCall [_functionName, _target];
+			} else {
+				_params remoteExec [_functionName, _target];
+			};
+		};
+	};
+
+	// Install Advanced Towing on all clients (plus JIP) //
+	
+	publicVariable "SA_Advanced_Towing_Install";
+	remoteExecCall ["SA_Advanced_Towing_Install", -2,true];
+	
+};
+
 diag_log "Advanced Towing Loaded";
 
-} remoteExecCall ["bis_fnc_call", 0,true]; 
+};
 
+if(isServer) then {
+	[] call SA_Advanced_Towing_Install;
+};
