@@ -13,23 +13,27 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #define SA_Find_Surface_ASL_Under_Position(_object,_positionAGL,_returnSurfaceASL,_canFloat) \
 _objectASL = AGLToASL (_object modelToWorldVisual (getCenterOfMass _object)); \
 _surfaceIntersectStartASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) + 1]; \
-_surfaceIntersectEndASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) - 10]; \
-_surfaces = lineIntersectsSurfaces [_surfaceIntersectStartASL, _surfaceIntersectEndASL, _object, objNull, true, 2]; \
-_returnSurfaceASL = [_positionAGL select 0, _positionAGL select 1, 0]; \
-if(count _surfaces > 0) then { \
-	if!(((_surfaces select 0) select 2) isKindOf "RopeSegment") then { \
-		_returnSurfaceASL = (_surfaces select 0) select 0; \
+_surfaceIntersectEndASL = [_positionAGL select 0, _positionAGL select 1, (_objectASL select 2) - 5]; \
+_surfaces = lineIntersectsSurfaces [_surfaceIntersectStartASL, _surfaceIntersectEndASL, _object, objNull, true, 5]; \
+_returnSurfaceASL = AGLToASL _positionAGL; \
+{ \
+	scopeName "surfaceLoop"; \
+	if( isNull (_x select 2) ) then { \
+		_returnSurfaceASL = _x select 0; \
+		breakOut "surfaceLoop"; \
 	} else { \
-		if(count _surfaces > 1) then { \
-			if!(((_surfaces select 1) select 2) isKindOf "RopeSegment") then { \
-				_returnSurfaceASL = (_surfaces select 1) select 0; \
+		if!((_x select 2) isKindOf "RopeSegment") then { \
+			_objectFileName = str (_x select 2); \
+			if((_objectFileName find " t_") == -1 && (_objectFileName find " b_") == -1) then { \
+				_returnSurfaceASL = _x select 0; \
+				breakOut "surfaceLoop"; \
 			}; \
 		}; \
 	}; \
-	if(_canFloat && (_returnSurfaceASL select 2) < 0) then { \
-		_returnSurfaceASL set [2,0]; \
-	}; \
-};
+} forEach _surfaces; \
+if(_canFloat && (_returnSurfaceASL select 2) < 0) then { \
+	_returnSurfaceASL set [2,0]; \
+}; \
 
 #define SA_Find_Surface_ASL_Under_Model(_object,_modelOffset,_returnSurfaceASL,_canFloat) \
 SA_Find_Surface_ASL_Under_Position(_object, (_object modelToWorldVisual _modelOffset), _returnSurfaceASL,_canFloat);
