@@ -14,7 +14,7 @@ Also check out my Advanced Sling Loading addon for more rope features!
 
 **Installation:**
 
-1. Subscrive via steam: http://steamcommunity.com/sharedfiles/filedetails/?id=639837898
+1. Subscrive via steam: http://steamcommunity.com/sharedfiles/filedetails/?id=639837898 or dowload latest release from https://github.com/sethduda/AdvancedTowing/releases
 2. If installing this on a server, add the addon to the -serverMod command line option
 3. Note, for exile, you can also drop the PBO into the @ExileServer/addon folder instead of using the -serverMod command line option.
 
