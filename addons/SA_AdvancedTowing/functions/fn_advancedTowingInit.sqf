@@ -348,24 +348,6 @@ SA_Take_Tow_Ropes = {
 	};
 };
 
-SA_Put_Away_Tow_Ropes = {
-	params ["_vehicle","_player"];
-	if(local _vehicle) then {
-		private ["_existingTowRopes","_hitchPoint","_rope"];
-		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
-		if(count _existingTowRopes > 0) then {
-			_this call SA_Pickup_Tow_Ropes;
-			_this call SA_Drop_Tow_Ropes;
-			{
-				ropeDestroy _x;
-			} forEach _existingTowRopes;
-			_vehicle setVariable ["SA_Tow_Ropes",nil,true];
-		};
-	} else {
-		[_this,"SA_Put_Away_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
-	};
-};
-
 SA_Pickup_Tow_Ropes = {
 	params ["_vehicle","_player"];
 	if(local _vehicle) then {
@@ -375,6 +357,7 @@ SA_Pickup_Tow_Ropes = {
 			{
 				_attachedObj ropeDetach _x;
 			} forEach (_vehicle getVariable ["SA_Tow_Ropes",[]]);
+			deleteVehicle _attachedObj;
 		} forEach ropeAttachedObjects _vehicle;
 		_helper = "Land_Can_V2_F" createVehicle position _player;
 		{
@@ -409,69 +392,154 @@ SA_Drop_Tow_Ropes = {
 	};
 };
 
-SA_Attach_Tow_Ropes_Action = {
-	private ["_vehicle","_towVehicle"];
-	_vehicle = cursorTarget;
-	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if([_vehicle] call SA_Can_Attach_Tow_Ropes) then {
-		[_vehicle,player] call SA_Attach_Tow_Ropes;
+SA_Put_Away_Tow_Ropes = {
+	params ["_vehicle","_player"];
+	if(local _vehicle) then {
+		private ["_existingTowRopes","_hitchPoint","_rope"];
+		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
+		if(count _existingTowRopes > 0) then {
+			_this call SA_Pickup_Tow_Ropes;
+			_this call SA_Drop_Tow_Ropes;
+			{
+				ropeDestroy _x;
+			} forEach _existingTowRopes;
+			_vehicle setVariable ["SA_Tow_Ropes",nil,true];
+		};
 	} else {
-		false;
+		[_this,"SA_Put_Away_Tow_Ropes",_vehicle,true] call SA_RemoteExec;
+	};
+};
+
+SA_Attach_Tow_Ropes_Action = {
+	private ["_vehicle","_cargo","_canBeTowed"];
+	_cargo = cursorTarget;
+	_vehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+	if([_vehicle,_cargo] call SA_Can_Attach_Tow_Ropes) then {
+		
+		_canBeTowed = true;
+		
+		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+			if( locked _cargo > 1 ) then {
+				["Cannot attach tow ropes to locked vehicle",false] call SA_Hint;
+				_canBeTowed = false;
+			};
+		};
+		
+		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+			if(!isNil "ExilePlayerInSafezone") then {
+				if( ExilePlayerInSafezone ) then {
+					["Cannot attach tow ropes in safe zone",false] call SA_Hint;
+					_canBeTowed = false;
+				};
+			};
+		};
+	
+		if(_canBeTowed) then {
+			[_cargo,player] call SA_Attach_Tow_Ropes;
+		};
+		
 	};
 };
 
 SA_Attach_Tow_Ropes_Action_Check = {
-	private ["_vehicle","_towVehicle","_isCargoBeingTowed","_isCargoTowingCargo","_isChainingEnabled","_isTowVehicleBeingTowed","_isTowVehicleTowingCargo"];
-	_vehicle = cursorTarget;
-	[_vehicle] call SA_Can_Attach_Tow_Ropes;
+	private ["_vehicle","_cargo"];
+	_vehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+	_cargo = cursorTarget;
+	[_vehicle,_cargo] call SA_Can_Attach_Tow_Ropes;
 };
 
 SA_Can_Attach_Tow_Ropes = {
-	params ["_cargo"];
-	private ["_towVehicle","_canBeTowed"];
-	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if(!isNull _towVehicle && !isNull _cargo) then {
-		_canBeTowed = [_towVehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _towVehicle != _cargo;		
-		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
-			_canBeTowed = _canBeTowed && locked _cargo <= 1;
-		};
-		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
-			if(!isNil "ExilePlayerInSafezone") then {
-				_canBeTowed = _canBeTowed && !ExilePlayerInSafezone;
-			};
-		};
-		_canBeTowed;
+	params ["_vehicle","_cargo"];
+	if(!isNull _vehicle && !isNull _cargo) then {
+		[_vehicle,_cargo] call SA_Is_Supported_Cargo && vehicle player == player && player distance _cargo < 10 && _vehicle != _cargo;
 	} else {
 		false;
 	};
 };
 
-SA_Attach_Tow_Ropes_Action_Disabled_Check = {
-	private ["_vehicle","_towVehicle"];
+SA_Take_Tow_Ropes_Action = {
+	private ["_vehicle","_canTakeTowRopes"];
 	_vehicle = cursorTarget;
-	_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if(!isNull _towVehicle && !isNull _vehicle) then {
-		not([_towVehicle,_vehicle] call SA_Is_Supported_Cargo) && vehicle player == player && player distance _vehicle < 10 && _towVehicle != _vehicle;	
-	} else {
-		false;
+	if([_vehicle] call SA_Can_Take_Tow_Ropes) then {
+	
+		_canTakeTowRopes = true;
+		
+		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+			if( locked _vehicle > 1 ) then {
+				["Cannot take tow ropes from locked vehicle",false] call SA_Hint;
+				_canTakeTowRopes = false;
+			};
+		};
+		
+		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+			if(!isNil "ExilePlayerInSafezone") then {
+				if( ExilePlayerInSafezone ) then {
+					["Cannot take tow ropes in safe zone",false] call SA_Hint;
+					_canTakeTowRopes = false;
+				};
+			};
+		};
+	
+		if(_canTakeTowRopes) then {
+			[_vehicle,player] call SA_Take_Tow_Ropes;
+		};
+	
 	};
 };
 
 SA_Take_Tow_Ropes_Action_Check = {
-	private ["_vehicle"];
-	_vehicle = cursorTarget;
+	[cursorTarget] call SA_Can_Take_Tow_Ropes;
+};
+
+SA_Can_Take_Tow_Ropes = {
+	params ["_vehicle"];
 	if([_vehicle] call SA_Is_Supported_Vehicle) then {
+		private ["_existingVehicle","_existingTowRopes"];
 		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
-		_towVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-		vehicle player == player && player distance _vehicle < 10 && (count _existingTowRopes) == 0 && isNull _towVehicle;
+		_existingVehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
+		vehicle player == player && player distance _vehicle < 10 && (count _existingTowRopes) == 0 && isNull _existingVehicle;
 	} else {
 		false;
 	};
 };
 
-SA_Put_Away_Tow_Ropes_Action_Check = {
-	private ["_vehicle"];
+SA_Put_Away_Tow_Ropes_Action = {
+	private ["_vehicle","_canPutAwayTowRopes"];
 	_vehicle = cursorTarget;
+	if([_vehicle] call SA_Can_Put_Away_Tow_Ropes) then {
+	
+		_canPutAwayTowRopes = true;
+		
+		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+			if( locked _vehicle > 1 ) then {
+				["Cannot put away tow ropes in locked vehicle",false] call SA_Hint;
+				_canPutAwayTowRopes = false;
+			};
+		};
+		
+		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+			if(!isNil "ExilePlayerInSafezone") then {
+				if( ExilePlayerInSafezone ) then {
+					["Cannot put away tow ropes in safe zone",false] call SA_Hint;
+					_canPutAwayTowRopes = false;
+				};
+			};
+		};
+	
+		if(_canPutAwayTowRopes) then {
+			[_vehicle,player] call SA_Put_Away_Tow_Ropes;
+		};
+		
+	};
+};
+
+SA_Put_Away_Tow_Ropes_Action_Check = {
+	[cursorTarget] call SA_Can_Put_Away_Tow_Ropes;
+};
+
+SA_Can_Put_Away_Tow_Ropes = {
+	params ["_vehicle"];
+	private ["_existingTowRopes"];
 	if([_vehicle] call SA_Is_Supported_Vehicle) then {
 		_existingTowRopes = _vehicle getVariable ["SA_Tow_Ropes",[]];
 		vehicle player == player && player distance _vehicle < 10 && (count _existingTowRopes) > 0;
@@ -480,28 +548,62 @@ SA_Put_Away_Tow_Ropes_Action_Check = {
 	};
 };
 
-SA_Drop_Tow_Ropes_Action_Check = {
-	!isNull (player getVariable ["SA_Tow_Ropes_Vehicle", objNull]) && vehicle player == player;
-};
-
-SA_Pickup_Tow_Ropes_Action_Check = {
-	isNull (player getVariable ["SA_Tow_Ropes_Vehicle", objNull]) && count (missionNamespace getVariable ["SA_Nearby_Tow_Vehicles",[]]) > 0 && vehicle player == player;
-};
-
-SA_Pickup_Tow_Ropes_Action = {
-	private ["_nearbyTowVehicles"];
-	_nearbyTowVehicles = missionNamespace getVariable ["SA_Nearby_Tow_Vehicles",[]];
-	if(count _nearbyTowVehicles > 0) then {
-		[_nearbyTowVehicles select 0, player] call SA_Pickup_Tow_Ropes;
-	};
-};
 
 SA_Drop_Tow_Ropes_Action = {
 	private ["_vehicle"];
 	_vehicle = player getVariable ["SA_Tow_Ropes_Vehicle", objNull];
-	if(!isNull _vehicle) then {
+	if([] call SA_Can_Drop_Tow_Ropes) then {
 		[_vehicle, player] call SA_Drop_Tow_Ropes;
 	};
+};
+
+SA_Drop_Tow_Ropes_Action_Check = {
+	[] call SA_Can_Drop_Tow_Ropes;
+};
+
+SA_Can_Drop_Tow_Ropes = {
+	!isNull (player getVariable ["SA_Tow_Ropes_Vehicle", objNull]) && vehicle player == player;
+};
+
+
+
+SA_Pickup_Tow_Ropes_Action = {
+	private ["_nearbyTowVehicles","_canPickupTowRopes","_vehicle"];
+	_nearbyTowVehicles = missionNamespace getVariable ["SA_Nearby_Tow_Vehicles",[]];
+	if([] call SA_Can_Pickup_Tow_Ropes) then {
+	
+		_vehicle = _nearbyTowVehicles select 0;
+		_canPickupTowRopes = true;
+		
+		if!(missionNamespace getVariable ["SA_TOW_LOCKED_VEHICLES_ENABLED",false]) then {
+			if( locked _vehicle > 1 ) then {
+				["Cannot pick up tow ropes from locked vehicle",false] call SA_Hint;
+				_canPickupTowRopes = false;
+			};
+		};
+		
+		if!(missionNamespace getVariable ["SA_TOW_IN_EXILE_SAFEZONE_ENABLED",false]) then {
+			if(!isNil "ExilePlayerInSafezone") then {
+				if( ExilePlayerInSafezone ) then {
+					["Cannot pick up tow ropes in safe zone",false] call SA_Hint;
+					_canPickupTowRopes = false;
+				};
+			};
+		};
+	
+		if(_canPickupTowRopes) then {
+			[_nearbyTowVehicles select 0, player] call SA_Pickup_Tow_Ropes;
+		};
+	
+	};
+};
+
+SA_Pickup_Tow_Ropes_Action_Check = {
+	[] call SA_Can_Pickup_Tow_Ropes;
+};
+
+SA_Can_Pickup_Tow_Ropes = {
+	isNull (player getVariable ["SA_Tow_Ropes_Vehicle", objNull]) && count (missionNamespace getVariable ["SA_Nearby_Tow_Vehicles",[]]) > 0 && vehicle player == player;
 };
 
 SA_TOW_SUPPORTED_VEHICLES = [
@@ -575,23 +677,6 @@ SA_Set_Owner = {
 	_obj setOwner _client;
 };
 
-SA_Take_Tow_Ropes_Action = {
-	private ["_vehicle"];
-	_vehicle = cursorTarget;
-	if([_vehicle] call SA_Is_Supported_Vehicle) then {
-		[_vehicle,player] call SA_Take_Tow_Ropes;
-	};
-};
-
-
-SA_Put_Away_Tow_Ropes_Action = {
-	private ["_vehicle"];
-	_vehicle = cursorTarget;
-	if([_vehicle] call SA_Is_Supported_Vehicle) then {
-		[_vehicle,player] call SA_Put_Away_Tow_Ropes;
-	};
-};
-
 SA_Add_Player_Tow_Actions = {
 	
 	player addAction ["Deploy Tow Ropes", { 
@@ -605,10 +690,6 @@ SA_Add_Player_Tow_Actions = {
 	player addAction ["Attach To Tow Ropes", { 
 		[] call SA_Attach_Tow_Ropes_Action;
 	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Check"];
-
-	player addAction ["Cannot Attach Tow Ropes", { 
-		["Your vehicle not strong enough. Find a larger vehicle!",false] call SA_Hint;
-	}, nil, 0, false, true, "", "call SA_Attach_Tow_Ropes_Action_Disabled_Check"];
 
 	player addAction ["Drop Tow Ropes", { 
 		[] call SA_Drop_Tow_Ropes_Action;
