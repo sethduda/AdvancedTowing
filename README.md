@@ -12,6 +12,13 @@ Also check out my Advanced Sling Loading addon for more rope features!
 - Supports towing damaged / destroyed vehicles 
 - Supports towing "trains" of vehicles (disabled by default - see below) 
 
+**Installation:**
+
+1. Subscrive via steam: http://steamcommunity.com/sharedfiles/filedetails/?id=639837898
+2. If installing this on a server, add the addon to the -serverMod command line option
+3. Note, for exile, you can also drop the PBO into the @ExileServer/addon folder instead of using the -serverMod command line option.
+
+
 **Default Towing Rules:**
 
 - Tanks can tow tanks, cars, ships and air 
