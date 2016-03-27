@@ -1,6 +1,6 @@
 # Advanced Towing
 
-Adds support for towing vehicles using ropes. Works in both SP and MP. Watch the video for directions. 
+Adds support for towing vehicles using ropes. Works in both SP and MP. Supports Exile.
 
 Also check out my Advanced Sling Loading addon for more rope features! 
 
