@@ -1,5 +1,70 @@
 # Advanced Towing
 
+Adds support for towing vehicles using ropes. Works in both SP and MP. Watch the video for directions. 
+
+Also check out my Advanced Sling Loading addon for more rope features! 
+
+Features: 
+
+- Tow other vehicles behind Ships, Cars, Trucks and Tanks 
+- The size of the vehicle impacts it's towing capability 
+- Other players (including AI) can tow other players 
+- Supports towing damaged / destroyed vehicles 
+- Supports towing "trains" of vehicles (disabled by default - see below) 
+
+Default Towing Rules: 
+
+- Tanks can tow tanks, cars, ships and air 
+- Cars can tow cars, ships and air 
+- Trucks can tow cars, ships and air 
+- Ships can only tow ships 
+
+Notes for Mission Makers: 
+
+Note: The addon only needs to be installed on the server. It's optional for clients. 
+
+You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When enabled, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. 
+
+e.g. SA_MAX_TOWED_CARGO = 1; 
+
+You can customize which classes of objects can "deploy" tow ropes by overriding the SA_TOW_SUPPORTED_VEHICLES_OVERRIDE variable in an init.sqf file. 
+
+e.g. SA_TOW_SUPPORTED_VEHICLES_OVERRIDE = [ "Air", "Ship" ]; (This will only allow objects of class Air and Ship deploy tow ropes) 
+
+You can customize what can and can't be towed by defining the SA_TOW_RULES_OVERRIDE variable in the init.sqf file. 
+
+e.g. 
+
+SA_TOW_RULES_OVERRIDE = 
+[ ["Air", "CAN_TOW", "Ship"], 
+["Air", "CAN_TOW", "Air"], 
+["Ship", "CANT_TOW", "Air"], 
+["Ship", "CAN_TOW", "Ship"] 
+]; 
+
+In this example, all objects of class Air can tow Ships and Air. However, Ships can only tow ships. 
+
+Not working on your server? 
+
+Make sure you have the mod listed in the -mod or -serverMod command line option. Only -serverMod is required for this addon. If still not working, check your server log to make sure the addon is found. 
+
+Trying to run this on Exile? 
+
+You can either install this like any other addon (using -serverMod command line option), or you can drop the pbo downloaded via steam into your @ExileServer/addon directory. Either approach will work. No changes needed to your mission file / description.ext / CfgRemoteExec. This addon has been built to use Exile's built in networking code. 
+
+Issues & Feature Requests 
+
+https://github.com/sethduda/AdvancedTowing/issues 
+
+If anyone wants to help fix any of these, please let me know. You can fork the repo and create a pull request. 
+
+Special Thanks for Testing: 
+
+- Stay Alive Tactical Team (http://sa.clanservers.com) 
+- BI forum community: diesel tech jc, TeTeT, belbo 
+- Crimson Gaming for testing on exile (http://crimsongamingau.com)
+
+
 ---
 
 The MIT License (MIT)
