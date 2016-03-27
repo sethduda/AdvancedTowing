@@ -210,11 +210,9 @@ SA_Simulate_Towing = {
 			
 			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
 			
-			_cargo allowDamage false;
 			_cargo setVectorDir _newCargoDir;
 			_cargo setVectorUp _surfaceNormal;
 			_cargo setPosWorld _newCargoPosition;
-			_cargo allowDamage true;
 			
 			_lastCargoHitchPosition = _newCargoHitchPosition;
 			_maxDistanceToCargo = _vehicleHitchPosition distance _newCargoHitchPosition;
