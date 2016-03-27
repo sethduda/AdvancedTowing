@@ -4,7 +4,7 @@ Adds support for towing vehicles using ropes. Works in both SP and MP. Supports 
 
 Also check out my Advanced Sling Loading addon for more rope features! 
 
-**Features: **
+**Features:**
 
 - Tow other vehicles behind Ships, Cars, Trucks and Tanks 
 - The size of the vehicle impacts it's towing capability 
@@ -12,14 +12,14 @@ Also check out my Advanced Sling Loading addon for more rope features!
 - Supports towing damaged / destroyed vehicles 
 - Supports towing "trains" of vehicles (disabled by default - see below) 
 
-**Default Towing Rules: **
+**Default Towing Rules:**
 
 - Tanks can tow tanks, cars, ships and air 
 - Cars can tow cars, ships and air 
 - Trucks can tow cars, ships and air 
 - Ships can only tow ships 
 
-**Notes for Mission Makers: **
+**Notes for Mission Makers:**
 
 Note: The addon only needs to be installed on the server. It's optional for clients. 
 
@@ -44,21 +44,21 @@ SA_TOW_RULES_OVERRIDE =
 
 In this example, all objects of class Air can tow Ships and Air. However, Ships can only tow ships. 
 
-**Not working on your server? **
+**Not working on your server?**
 
 Make sure you have the mod listed in the -mod or -serverMod command line option. Only -serverMod is required for this addon. If still not working, check your server log to make sure the addon is found. 
 
-**Trying to run this on Exile? **
+**Trying to run this on Exile?**
 
 You can either install this like any other addon (using -serverMod command line option), or you can drop the pbo downloaded via steam into your @ExileServer/addon directory. Either approach will work. No changes needed to your mission file / description.ext / CfgRemoteExec. This addon has been built to use Exile's built in networking code. 
 
-**Issues & Feature Requests **
+**Issues & Feature Requests**
 
 https://github.com/sethduda/AdvancedTowing/issues 
 
 If anyone wants to help fix any of these, please let me know. You can fork the repo and create a pull request. 
 
-**Special Thanks for Testing: **
+**Special Thanks for Testing:**
 
 - Stay Alive Tactical Team (http://sa.clanservers.com) 
 - BI forum community: diesel tech jc, TeTeT, belbo 
