@@ -32,24 +32,32 @@ Note: The addon only needs to be installed on the server. It's optional for clie
 
 You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When enabled, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. 
 
-e.g. SA_MAX_TOWED_CARGO = 1; 
+```SA_MAX_TOWED_CARGO = 1; ```
 
 You can customize which classes of objects can "deploy" tow ropes by overriding the SA_TOW_SUPPORTED_VEHICLES_OVERRIDE variable in an init.sqf file. 
 
-e.g. SA_TOW_SUPPORTED_VEHICLES_OVERRIDE = [ "Air", "Ship" ]; (This will only allow objects of class Air and Ship deploy tow ropes) 
+```SA_TOW_SUPPORTED_VEHICLES_OVERRIDE = [ "Air", "Ship" ]; ```
+
+This will only allow objects of class Air and Ship deploy tow ropes.
 
 You can customize what can and can't be towed by defining the SA_TOW_RULES_OVERRIDE variable in the init.sqf file. 
 
-e.g. 
-
-SA_TOW_RULES_OVERRIDE = 
+```SA_TOW_RULES_OVERRIDE = 
 [ ["Air", "CAN_TOW", "Ship"], 
 ["Air", "CAN_TOW", "Air"], 
 ["Ship", "CANT_TOW", "Air"], 
 ["Ship", "CAN_TOW", "Ship"] 
-]; 
+]; ```
 
 In this example, all objects of class Air can tow Ships and Air. However, Ships can only tow ships. 
+
+You can allow towing of locked vehicles by defining SA_TOW_LOCKED_VEHICLES_ENABLED in your init.sqf file. It defaults to false. 
+
+```SA_TOW_LOCKED_VEHICLES_ENABLED = true; ```
+
+You can allow towing in an Exile safe zone by defining SA_TOW_IN_EXILE_SAFEZONE_ENABLED in your init.sqf file. It default to false. 
+
+```SA_TOW_IN_EXILE_SAFEZONE_ENABLED = true; ```
 
 **Not working on your server?**
 
