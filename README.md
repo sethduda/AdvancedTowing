@@ -32,7 +32,7 @@ Note: The addon only needs to be installed on the server. It's optional for clie
 
 You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When enabled, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. 
 
-```SA_MAX_TOWED_CARGO = 1; ```
+```SA_MAX_TOWED_CARGO = 3; ```
 
 You can customize which classes of objects can "deploy" tow ropes by overriding the SA_TOW_SUPPORTED_VEHICLES_OVERRIDE variable in an init.sqf file. 
 
