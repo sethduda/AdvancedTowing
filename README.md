@@ -16,8 +16,7 @@ Also check out my Advanced Sling Loading addon for more rope features!
 
 1. Subscrive via steam: http://steamcommunity.com/sharedfiles/filedetails/?id=639837898 or dowload latest release from https://github.com/sethduda/AdvancedTowing/releases
 2. If installing this on a server, add the addon to the -serverMod command line option
-3. Note, for exile, you can also drop the PBO into the @ExileServer/addon folder instead of using the -serverMod command line option.
-
+3. Optionally, this can be installed directly in the mission PBO by calling the advanced towing script via initServer.sqf. You'll find the sqf script (fn_advancedTowingInit.sqf) in the addons directory inside the downloaded addon.
 
 **Default Towing Rules:**
 
