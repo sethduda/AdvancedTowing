@@ -78,7 +78,7 @@ If anyone wants to help fix any of these, please let me know. You can fork the r
 - Stay Alive Tactical Team (http://sa.clanservers.com) 
 - BI forum community: diesel tech jc, TeTeT, belbo 
 - Crimson Gaming for testing on exile (http://crimsongamingau.com)
-- DirtySanchez & XLD (exilemod.com) for his great ideas & work to make this funcational with Exile
+- DirtySanchez & XLD (exilemod.com) for his great ideas & work to make this functional with Exile
 
 
 ---
