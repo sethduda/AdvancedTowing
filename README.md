@@ -25,6 +25,8 @@ Also check out my Advanced Sling Loading addon for more rope features!
 - Cars can tow cars, ships and air 
 - Trucks can tow cars, ships and air 
 - Ships can only tow ships 
+- You can't tow locked vehicles (see settings below) 
+- You can only tow one vehicle at a time (see settings below) 
 
 **Notes for Mission Makers:**
 
