@@ -73,7 +73,7 @@ https://github.com/sethduda/AdvancedTowing/issues
 
 If anyone wants to help fix any of these, please let me know. You can fork the repo and create a pull request. 
 
-**Special Thanks for Testing:**
+**Special Thanks for Testing & Support:**
 
 - Stay Alive Tactical Team (http://sa.clanservers.com) 
 - BI forum community: diesel tech jc, TeTeT, belbo 
