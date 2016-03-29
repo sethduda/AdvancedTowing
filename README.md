@@ -65,11 +65,11 @@ Make sure you have the mod listed in the -mod or -serverMod command line option.
 
 **FAQ**
 
-This addon is only required on the server - is it going to slow down my server? 
+*This addon is only required on the server - is it going to slow down my server?*
 
 No - while this addon is server-side only, it installs itself on all clients without them downloading the addon. Most of the time, the towing code actually runs client-side, even though you installed the addon only on the server. Magic! 
 
-Why is the vehicle I'm towing jumpy/laggy? 
+*Why is the vehicle I'm towing jumpy/laggy?*
 
 If you're towing a vehicle that another player is driving, it's slower to transmit position updates for the towed vehicle. This will result in laggy looking towing. Have the player move to the passenger seat and then re-attach the tow ropes. 
 
