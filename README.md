@@ -29,9 +29,7 @@ Also check out my Advanced Sling Loading addon for more rope features!
 
 **Notes for Mission Makers:**
 
-Note: The addon only needs to be installed on the server. It's optional for clients. 
-
-You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When enabled, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. 
+You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When enabled, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. Note, however, mass of all vehicles will be taken into account. It's going to be slower to two vehicles than one. 
 
 ```SA_MAX_TOWED_CARGO = 3; ```
 
