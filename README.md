@@ -63,9 +63,17 @@ You can allow towing in an Exile safe zone by defining SA_TOW_IN_EXILE_SAFEZONE_
 
 Make sure you have the mod listed in the -mod or -serverMod command line option. Only -serverMod is required for this addon. If still not working, check your server log to make sure the addon is found. 
 
-**Trying to run this on Exile?**
+**FAQ**
 
-You can either install this like any other addon (using -serverMod command line option), or you can drop the pbo downloaded via steam into your @ExileServer/addon directory. Either approach will work. No changes needed to your mission file / description.ext / CfgRemoteExec. This addon has been built to use Exile's built in networking code. 
+This addon is only required on the server - is it going to slow down my server? 
+
+No - while this addon is server-side only, it installs itself on all clients without them downloading the addon. Most of the time, the towing code actually runs client-side, even though you installed the addon only on the server. Magic! 
+
+Why is the vehicle I'm towing jumpy/laggy? 
+
+If you're towing a vehicle that another player is driving, it's slower to transmit position updates for the towed vehicle. This will result in laggy looking towing. Have the player move to the passenger seat and then re-attach the tow ropes. 
+
+Also, when using this in MP, all other players watching someone tow something will also notice the towed vehicle isn't moving as smoothly. This is also due to network delay. Usually this isn't too noticeable unless moving very fast. 
 
 **Issues & Feature Requests**
 
