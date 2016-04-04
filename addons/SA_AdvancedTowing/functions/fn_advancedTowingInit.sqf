@@ -669,7 +669,9 @@ SA_Hint = {
 
 SA_Hide_Object_Global = {
 	params ["_obj"];
-	hideObjectGlobal _obj;
+	if( _obj isKindOf "Land_Can_V2_F" ) then {
+		hideObjectGlobal _obj;
+	};
 };
 
 SA_Set_Owner = {
