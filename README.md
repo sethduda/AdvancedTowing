@@ -78,15 +78,15 @@ Also, when using this in MP, all other players watching someone tow something wi
 
 You need to configure Battleye rules on your server. Below are the two files you need to configure: 
 
-publicvariable.txt 
+setvariable.txt 
 
-Add the following to the end of all lines starting with 4, 5, 6, or 7: 
+Add the following exclusions to the end of all lines starting with 4, 5, 6, or 7 if they contain "" (meaning applies to all values): 
 
 !="SA_Cargo" !="SA_Tow_Ropes" !="SA_Tow_Ropes_Vehicle" !="SA_Tow_Ropes_Pick_Up_Helper" 
 
-publicvariableval.txt 
+setvariable.txt 
 
-If you have any lines starting with 4, 5, 6, or 7 and they are followed by "" (meaning applies to all values) it's not going to work. Either remove the line or explicitly define the values you want to kick. Since the values of the variables above can vary, I don't know of a good way to define an exclusion rule. 
+If you have any lines starting with 4, 5, 6, or 7 and they contain "" (meaning applies to all values) it's not going to work. Either remove the line or explicitly define the values you want to kick. Since the values of the variables above can vary, I don't know of a good way to define an exclusion rule. 
 
 **Issues & Feature Requests**
 
