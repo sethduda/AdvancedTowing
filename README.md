@@ -74,6 +74,20 @@ If you're towing a vehicle that another player is driving, it's slower to transm
 
 Also, when using this in MP, all other players watching someone tow something will also notice the towed vehicle isn't moving as smoothly. This is also due to network delay. Usually this isn't too noticeable unless moving very fast. 
 
+**Battleye kicks me when I try to do xyz. What do I do?**
+
+You need to configure Battleye rules on your server. Below are the two files you need to configure: 
+
+publicvariable.txt 
+
+Add the following to the end of all lines starting with 4, 5, 6, or 7: 
+
+!="SA_Cargo" !="SA_Tow_Ropes" !="SA_Tow_Ropes_Vehicle" !="SA_Tow_Ropes_Pick_Up_Helper" 
+
+publicvariableval.txt 
+
+If you have any lines starting with 4, 5, 6, or 7 and they are followed by "" (meaning applies to all values) it's not going to work. Either remove the line or explicitly define the values you want to kick. Since the values of the variables above can vary, I don't know of a good way to define an exclusion rule. 
+
 **Issues & Feature Requests**
 
 https://github.com/sethduda/AdvancedTowing/issues 
