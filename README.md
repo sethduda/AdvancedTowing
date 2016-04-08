@@ -84,7 +84,7 @@ Add the following exclusions to the end of all lines starting with 4, 5, 6, or 7
 
 !="SA_Cargo" !="SA_Tow_Ropes" !="SA_Tow_Ropes_Vehicle" !="SA_Tow_Ropes_Pick_Up_Helper" 
 
-setvariable.txt 
+setvariableval.txt 
 
 If you have any lines starting with 4, 5, 6, or 7 and they contain "" (meaning applies to all values) it's not going to work. Either remove the line or explicitly define the values you want to kick. Since the values of the variables above can vary, I don't know of a good way to define an exclusion rule. 
 
