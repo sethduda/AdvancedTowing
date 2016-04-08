@@ -76,7 +76,7 @@ Also, when using this in MP, all other players watching someone tow something wi
 
 **Battleye kicks me when I try to do xyz. What do I do?**
 
-You need to configure Battleye rules on your server. Below are the two files you need to configure: 
+You need to configure Battleye rules on your server. Below are the files you need to configure: 
 
 setvariable.txt 
 
@@ -87,6 +87,30 @@ Add the following exclusions to the end of all lines starting with 4, 5, 6, or 7
 setvariableval.txt 
 
 If you have any lines starting with 4, 5, 6, or 7 and they contain "" (meaning applies to all values) it's not going to work. Either remove the line or explicitly define the values you want to kick. Since the values of the variables above can vary, I don't know of a good way to define an exclusion rule. 
+
+Also, it's possible there are other battleye filter files that can cause issues. If you check your battleye logs you can figure out which file is causing a problem.
+
+**The tow actions appear when looking at a vehicle, but do nothing when I select them. How do I fix that?**
+
+Most likely your server is setup with a white list for remote executions. In order to fix this, you need to modify your mission's description.ext file, adding the following CfgRemoteExec rules. If using InfiStar you should edit your cfgremoteexec.hpp instead of the description.ext file. See https://community.bistudio.com/wiki/Arma_3_Remote_Execution for more details on CfgRemoteExec.
+
+```
+class CfgRemoteExec
+{
+	class Functions
+	{
+		class SA_Simulate_Towing	{ allowedTargets=0; }; 
+		class SA_Attach_Tow_Ropes	{ allowedTargets=0; }; 
+		class SA_Take_Tow_Ropes		{ allowedTargets=0; }; 
+		class SA_Put_Away_Tow_Ropes	{ allowedTargets=0; }; 
+		class SA_Pickup_Tow_Ropes	{ allowedTargets=0; }; 
+		class SA_Drop_Tow_Ropes		{ allowedTargets=0; }; 
+		class SA_Set_Owner		{ allowedTargets=2; }; 
+		class SA_Hint			{ allowedTargets=1; }; 
+		class SA_Set_Owner		{ allowedTargets=2; }; 
+	};
+};
+```
 
 **Issues & Feature Requests**
 
