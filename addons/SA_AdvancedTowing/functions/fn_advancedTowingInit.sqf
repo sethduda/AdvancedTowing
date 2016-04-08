@@ -231,6 +231,8 @@ SA_Simulate_Towing = {
 				_vehicle setVelocity ((vectorNormalized (velocity _vehicle)) vectorMultiply (_massAdjustedMaxSpeed/3.6));
 			};
 			
+			_cargo setVelocity ((vectorDir _cargo) vectorMultiply (vectorMagnitude (velocity _vehicle)));
+			
 		} else {
 		
 			if(_lastMovedCargoPosition distance _cargoPosition > 2) then {
