@@ -126,6 +126,7 @@ SA_Simulate_Towing = {
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects","_currentCargo"];
 	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass","_cargoCanFloat"];	
 	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
+	private ["_maxSurfaceMidpointASLHeight","_surfaceMidpoint1","_surfaceMidpoint2","_surfaceMidpointASLGL"];
 	
 	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
 	_cargoCanFloat = if( getNumber (configFile >> "CfgVehicles" >> typeOf _cargo >> "canFloat") == 1 ) then { true } else { false };
@@ -207,6 +208,13 @@ SA_Simulate_Towing = {
 			_surfaceNormal1 = (_cargoCorner1ASL vectorFromTo _cargoCorner3ASL) vectorCrossProduct (_cargoCorner1ASL vectorFromTo _cargoCorner2ASL);
 			_surfaceNormal2 = (_cargoCorner4ASL vectorFromTo _cargoCorner2ASL) vectorCrossProduct (_cargoCorner4ASL vectorFromTo _cargoCorner3ASL);
 			_surfaceNormal = _surfaceNormal1 vectorAdd _surfaceNormal2;
+			
+			// Calculate adjusted surface height (prevents vehicle from clipping into ground)
+			_surfaceMidpoint1 = (_cargoCorner1ASL vectorAdd _cargoCorner4ASL) vectorMultiply 0.5;
+			_surfaceMidpoint2 = (_cargoCorner2ASL vectorAdd _cargoCorner3ASL) vectorMultiply 0.5;
+			_surfaceMidpointASLGL = AGLToASL [_surfaceMidpoint2 select 0, _surfaceMidpoint2 select 1, 0];
+			_maxSurfaceMidpointASLHeight = (_surfaceMidpoint1 select 2) max (_surfaceMidpoint2 select 2) max (_surfaceMidpointASLGL select 2);
+			_newCargoPosition set [2, _maxSurfaceMidpointASLHeight ];
 			
 			_newCargoPosition = _newCargoPosition vectorAdd ( _cargoModelCenterGroundPosition vectorMultiply -1 );
 			
