@@ -65,7 +65,7 @@ SA_Simulate_Towing_Speed = {
 	
 	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
 	_vehicleMass = 1000 max (getMass _vehicle);
-	_maxTowedCargo = missionNamespace getVariable ["SA_MAX_TOWED_CARGO",1];
+	_maxTowedCargo = missionNamespace getVariable ["SA_MAX_TOWED_CARGO",2];
 	_runSimulation = true;
 	
 	private ["_currentVehicle","_totalCargoMass","_totalCargoCount","_findNextCargo","_towRopes","_ropeLength"];
@@ -126,7 +126,7 @@ SA_Simulate_Towing = {
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects","_currentCargo"];
 	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass","_cargoCanFloat"];	
 	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
-	private ["_cargoCenterASL","_surfaceHeight","_surfaceHeight2","_maxSurfaceHeight"];
+	private ["_cargoCenterASL","_surfaceHeight","_surfaceHeight2","_maxSurfaceHeight","_cargoSpeedMetersPerSec"];
 	
 	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
 	_cargoCanFloat = if( getNumber (configFile >> "CfgVehicles" >> typeOf _cargo >> "canFloat") == 1 ) then { true } else { false };
@@ -136,7 +136,7 @@ SA_Simulate_Towing = {
 	_cargoModelCenterGroundPosition = _cargo worldToModelVisual _cargoCenterOfMassAGL;
 	_cargoModelCenterGroundPosition set [0,0];
 	_cargoModelCenterGroundPosition set [1,0];
-	_cargoModelCenterGroundPosition set [2, (_cargoModelCenterGroundPosition select 2) - 0.10]; // Adjust height so that it doesn't ride directly on ground
+	_cargoModelCenterGroundPosition set [2, (_cargoModelCenterGroundPosition select 2) - 0.05]; // Adjust height so that it doesn't ride directly on ground
 	
 	// Calculate cargo model corner points
 	private ["_cargoCornerPoints"];
@@ -249,10 +249,14 @@ SA_Simulate_Towing = {
 				_vehicle setVelocity ((vectorNormalized (velocity _vehicle)) vectorMultiply (_massAdjustedMaxSpeed/3.6));
 			};
 			
-			_cargo setVelocity ((vectorDir _cargo) vectorMultiply (vectorMagnitude (velocity _vehicle)));
+			// Simulate cargo velocity. Only applies if the simulated velocity is >= 0 meters per sec.
+			_cargoSpeedMetersPerSec = (velocity _vehicle) vectorDotProduct _newCargoDir;
+			if(_cargoSpeedMetersPerSec >= 0) then {
+				_cargo setVelocity (_newCargoDir vectorMultiply _cargoSpeedMetersPerSec);
+			};
 			
 		} else {
-		
+
 			if(_lastMovedCargoPosition distance _cargoPosition > 2) then {
 				_lastCargoHitchPosition = _cargo modelToWorld _cargoHitchModelPos;
 				_lastCargoVectorDir = vectorDir _cargo;
@@ -682,6 +686,7 @@ SA_TOW_RULES = [
 	["Tank","CAN_TOW","Car"],
 	["Tank","CAN_TOW","Ship"],
 	["Tank","CAN_TOW","Air"],
+	["Car","CAN_TOW","Tank"],
 	["Car","CAN_TOW","Car"],
 	["Car","CAN_TOW","Ship"],
 	["Car","CAN_TOW","Air"],
