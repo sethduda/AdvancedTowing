@@ -126,7 +126,7 @@ SA_Simulate_Towing = {
 	private ["_vehicleHitchPosition","_cargoHitchPosition","_newCargoHitchPosition","_cargoVector","_movedCargoVector","_attachedObjects","_currentCargo"];
 	private ["_newCargoDir","_lastCargoVectorDir","_newCargoPosition","_doExit","_cargoPosition","_vehiclePosition","_maxVehicleSpeed","_vehicleMass","_cargoMass","_cargoCanFloat"];	
 	private ["_cargoCorner1AGL","_cargoCorner1ASL","_cargoCorner2AGL","_cargoCorner2ASL","_cargoCorner3AGL","_cargoCorner3ASL","_cargoCorner4AGL","_cargoCorner4ASL","_surfaceNormal1","_surfaceNormal2","_surfaceNormal"];
-	private ["_cargoCenterASL","_surfaceHeight","_surfaceHeight2","_maxSurfaceHeight","_cargoSpeedMetersPerSec"];
+	private ["_cargoCenterASL","_surfaceHeight","_surfaceHeight2","_maxSurfaceHeight"];
 	
 	_maxVehicleSpeed = getNumber (configFile >> "CfgVehicles" >> typeOf _vehicle >> "maxSpeed");
 	_cargoCanFloat = if( getNumber (configFile >> "CfgVehicles" >> typeOf _cargo >> "canFloat") == 1 ) then { true } else { false };
@@ -247,12 +247,6 @@ SA_Simulate_Towing = {
 			_massAdjustedMaxSpeed = _vehicle getVariable ["SA_Max_Tow_Speed",_maxVehicleSpeed];		
 			if(speed _vehicle > (_massAdjustedMaxSpeed)+0.1) then {
 				_vehicle setVelocity ((vectorNormalized (velocity _vehicle)) vectorMultiply (_massAdjustedMaxSpeed/3.6));
-			};
-			
-			// Simulate cargo velocity. Only applies if the simulated velocity is >= 0 meters per sec.
-			_cargoSpeedMetersPerSec = (velocity _vehicle) vectorDotProduct _newCargoDir;
-			if(_cargoSpeedMetersPerSec >= 0) then {
-				_cargo setVelocity (_newCargoDir vectorMultiply _cargoSpeedMetersPerSec);
 			};
 			
 		} else {
