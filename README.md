@@ -74,7 +74,7 @@ If you're towing a vehicle that another player is driving, it's slower to transm
 
 Also, when using this in MP, all other players watching someone tow something will also notice the towed vehicle isn't moving as smoothly. This is also due to network delay. Usually this isn't too noticeable unless moving very fast. 
 
-**Battleye kicks me when I try to do xyz. What do I do?**
+*Battleye kicks me when I try to do xyz. What do I do?*
 
 You need to configure Battleye rules on your server. Below are the files you need to configure: 
 
@@ -90,7 +90,7 @@ If you have any lines starting with 4, 5, 6, or 7 and they contain "" (meaning a
 
 Also, it's possible there are other battleye filter files that can cause issues. If you check your battleye logs you can figure out which file is causing a problem.
 
-**The tow actions appear when looking at a vehicle, but do nothing when I select them. How do I fix that?**
+*The tow actions appear when looking at a vehicle, but do nothing when I select them. How do I fix that?*
 
 Most likely your server is setup with a white list for remote executions. In order to fix this, you need to modify your mission's description.ext file, adding the following CfgRemoteExec rules. If using InfiStar you should edit your cfgremoteexec.hpp instead of the description.ext file. See https://community.bistudio.com/wiki/Arma_3_Remote_Execution for more details on CfgRemoteExec.
 
