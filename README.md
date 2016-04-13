@@ -10,7 +10,7 @@ Also check out my Advanced Sling Loading addon for more rope features!
 - The size of the vehicle impacts it's towing capability 
 - Other players (including AI) can tow other players 
 - Supports towing damaged / destroyed vehicles 
-- Supports towing "trains" of vehicles (disabled by default - see below) 
+- Supports towing "trains" of vehicles (limited to 2 by default - see below) 
 
 **Installation:**
 
@@ -25,11 +25,11 @@ Also check out my Advanced Sling Loading addon for more rope features!
 - Trucks can tow cars, ships and air 
 - Ships can only tow ships 
 - You can't tow locked vehicles (see settings below) 
-- You can only tow one vehicle at a time (see settings below) 
+- You can only tow up to two vehicles at a time (see settings below) 
 
 **Notes for Mission Makers:**
 
-You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 1. When set, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. Note, however, mass of all vehicles will be taken into account. It's going to be slower to two vehicles vs one. 
+You can enable "trains" of vehicles by defining the SA_MAX_TOWED_CARGO varible in your init.sqf file. By default, this is set to 2. When set, vehicles can tow up to the max number of specified vehicles. If you try to tow more, your vehicle won't be able to move. Note, however, mass of all vehicles will be taken into account. It's going to be slower to two vehicles vs one. 
 
 ```SA_MAX_TOWED_CARGO = 3; ```
 
